@@ -46,3 +46,4 @@ fiba-stats-system/electron/dist/
 fiba-stats-system/electron/release/
 fiba-stats-system/frontend/dist/
 fiba-stats-system/backend/venv/
+node_modules/
