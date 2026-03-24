@@ -68,3 +68,41 @@ def stats_jugador(jugador_id: int, db: Session = Depends(get_db)):
     return db.query(StatsJugador).filter(
         StatsJugador.jugador_id == jugador_id
     ).all()
+
+@router.get("/rachas")
+def get_team_streaks(db: Session = Depends(get_db)):
+    from app.models.equipo import Equipo
+    
+    equipos = db.query(Equipo).all()
+    result = []
+    
+    for eq in equipos:
+        # Recuperar partidos terminados donde participó este equipo
+        partidos = db.query(Partido).filter(
+            Partido.estado == EstadoPartido.FINALIZADO,
+            ((Partido.local_id == eq.id) | (Partido.visitante_id == eq.id))
+        ).order_by(Partido.fecha.desc()).all()
+        
+        streak = 0
+        for p in partidos:
+            is_local = p.local_id == eq.id
+            if is_local:
+                won = p.pts_local > p.pts_visitante
+            else:
+                won = p.pts_visitante > p.pts_local
+            
+            if won:
+                streak += 1
+            else:
+                break # Streak ended on first loss
+        
+        result.append({
+            "equipo": eq.nombre,
+            "abrev": eq.abrev,
+            "color": eq.color_principal,
+            "streak": streak
+        })
+    
+    # Ordenar por racha descendente
+    result.sort(key=lambda x: x["streak"], reverse=True)
+    return result
