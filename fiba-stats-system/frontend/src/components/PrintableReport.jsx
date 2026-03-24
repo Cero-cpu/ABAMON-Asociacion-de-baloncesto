@@ -20,7 +20,6 @@ export default function PrintableReport({ partido, equipoLocal, equipoVisitante,
         return hasData ? total : ''
     }
 
-    // Parciales por cuarto para mostrar (24-16, 17-12, ...)
     const parcialesPorCuarto = [1, 2, 3, 4].map(q => {
         const p = parciales.find(p => p.cuarto === q && p.intervalo === 2)
         return p ? `${p.pts_local}-${p.pts_visitante}` : null
@@ -35,54 +34,63 @@ export default function PrintableReport({ partido, equipoLocal, equipoVisitante,
             as: acc.as + (j.asistencias || 0), per: acc.per + (j.perdidas || 0), rec: acc.rec + (j.recuperos || 0),
             tf: acc.tf + (j.bloqueos || 0), fc: acc.fc + (j.faltas || 0), fr: acc.fr + (j.faltas_recibidas || 0),
             mm: acc.mm + (j.mas_menos || 0), ef: acc.ef + (j.eficiencia || 0), pts: acc.pts + (j.puntos || 0)
-        }), { t2_c:0,t2_i:0,t3_c:0,t3_i:0,tl_c:0,tl_i:0,ro:0,rd:0,rt:0,as:0,per:0,rec:0,tf:0,fc:0,fr:0,mm:0,ef:0,pts:0 })
+        }), { t2_c: 0, t2_i: 0, t3_c: 0, t3_i: 0, tl_c: 0, tl_i: 0, ro: 0, rd: 0, rt: 0, as: 0, per: 0, rec: 0, tf: 0, fc: 0, fr: 0, mm: 0, ef: 0, pts: 0 })
 
         const tc_c = t.t2_c + t.t3_c
         const tc_i = t.t2_i + t.t3_i
 
+        // Column widths in mm (Total 194mm)
+        const CW = {
+            no: '7mm',
+            name: '32mm',
+            min: '10mm',
+            ci: '10mm',
+            pct: '8mm',
+            reb: '7mm',
+            small: '7mm',
+            plusminus: '8mm',
+            ef: '8mm',
+            pts: '12mm'
+        }
+
         return (
-            <div style={{ marginBottom: '6pt', pageBreakInside: 'avoid' }}>
-                {/* Encabezado del equipo */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '2pt', padding: '0 2pt' }}>
-                    <span style={{ fontSize: '9pt', fontWeight: '900', textTransform: 'uppercase' }}>
+            <div style={{ marginBottom: '2mm' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1mm' }}>
+                    <span style={{ fontSize: '9px', fontWeight: '900', textTransform: 'uppercase' }}>
                         {equipo?.nombre} ({equipo?.abrev})
                     </span>
-                    <span style={{ fontSize: '7pt' }}>
-                        Entrenador: <strong>{equipo?.entrenador || '_______________'}</strong>
-                        &nbsp;&nbsp;Asistente(s): <strong>{equipo?.asistente1 || '_______________'}{equipo?.asistente2 ? `, ${equipo.asistente2}` : ''}</strong>
+                    <span style={{ fontSize: '8px' }}>
+                        Coach: <strong>{equipo?.entrenador || '_______________'}</strong> | Ast: <strong>{equipo?.asistente1 || '_______________'}</strong>
                     </span>
                 </div>
 
-                <table className="fiba-table" style={{ width: '100%' }}>
+                <table className="fiba-table">
                     <thead>
                         <tr>
-                            <th rowSpan={2} style={{ width: '16pt' }}>No</th>
-                            <th rowSpan={2} style={{ width: '105pt', textAlign: 'left', paddingLeft: '3pt' }}>Nombre</th>
-                            <th rowSpan={2} style={{ width: '20pt' }}>Min</th>
-                            <th colSpan={2}>Tiros de campo</th>
-                            <th colSpan={2}>2 puntos</th>
-                            <th colSpan={2}>3 puntos</th>
-                            <th colSpan={2}>Tiros 1 pt</th>
-                            <th colSpan={3}>Rebotes</th>
-                            <th rowSpan={2} style={{ width: '14pt' }}>AS</th>
-                            <th rowSpan={2} style={{ width: '14pt' }}>Per</th>
-                            <th rowSpan={2} style={{ width: '14pt' }}>Rec</th>
-                            <th rowSpan={2} style={{ width: '14pt' }}>TF</th>
-                            <th colSpan={2}>Faltas</th>
-                            <th rowSpan={2} style={{ width: '16pt' }}>+/-</th>
-                            <th rowSpan={2} style={{ width: '16pt' }}>Ef</th>
-                            <th rowSpan={2} style={{ width: '18pt', backgroundColor: '#ddd' }}>Pts</th>
+                            <th rowSpan={2} style={{ width: CW.no }}>No</th>
+                            <th rowSpan={2} style={{ width: CW.name, textAlign: 'left', paddingLeft: '2mm' }}>Player</th>
+                            <th rowSpan={2} style={{ width: CW.min }}>Min</th>
+                            <th colSpan={2} style={{ width: `calc(${CW.ci} + ${CW.pct})` }}>FG</th>
+                            <th colSpan={2} style={{ width: `calc(${CW.ci} + ${CW.pct})` }}>2P</th>
+                            <th colSpan={2} style={{ width: `calc(${CW.ci} + ${CW.pct})` }}>3P</th>
+                            <th colSpan={2} style={{ width: `calc(${CW.ci} + ${CW.pct})` }}>FT</th>
+                            <th colSpan={3} style={{ width: `calc(${CW.reb} * 3)` }}>Reb</th>
+                            <th rowSpan={2} style={{ width: CW.small }}>AS</th>
+                            <th rowSpan={2} style={{ width: CW.small }}>TO</th>
+                            <th rowSpan={2} style={{ width: CW.small }}>ST</th>
+                            <th rowSpan={2} style={{ width: CW.small }}>BS</th>
+                            <th colSpan={2} style={{ width: `calc(${CW.small} * 2)` }}>Flt</th>
+                            <th rowSpan={2} style={{ width: CW.plusminus }}>+/-</th>
+                            <th rowSpan={2} style={{ width: CW.ef }}>Ef</th>
+                            <th rowSpan={2} style={{ width: CW.pts, backgroundColor: '#ddd' }}>Pts</th>
                         </tr>
                         <tr>
-                            <th style={{ width: '22pt' }}>C/I</th><th style={{ width: '20pt' }}>%</th>
-                            <th style={{ width: '22pt' }}>C/I</th><th style={{ width: '20pt' }}>%</th>
-                            <th style={{ width: '22pt' }}>C/I</th><th style={{ width: '20pt' }}>%</th>
-                            <th style={{ width: '22pt' }}>C/I</th><th style={{ width: '20pt' }}>%</th>
-                            <th style={{ width: '13pt' }}>RO</th>
-                            <th style={{ width: '13pt' }}>RD</th>
-                            <th style={{ width: '13pt' }}>RT</th>
-                            <th style={{ width: '13pt' }}>FC</th>
-                            <th style={{ width: '13pt' }}>FR</th>
+                            <th style={{ width: CW.ci }}>C/I</th><th style={{ width: CW.pct }}>%</th>
+                            <th style={{ width: CW.ci }}>C/I</th><th style={{ width: CW.pct }}>%</th>
+                            <th style={{ width: CW.ci }}>C/I</th><th style={{ width: CW.pct }}>%</th>
+                            <th style={{ width: CW.ci }}>C/I</th><th style={{ width: CW.pct }}>%</th>
+                            <th style={{ width: CW.reb }}>O</th><th style={{ width: CW.reb }}>D</th><th style={{ width: CW.reb }}>T</th>
+                            <th style={{ width: CW.small }}>C</th><th style={{ width: CW.small }}>R</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -91,77 +99,43 @@ export default function PrintableReport({ partido, equipoLocal, equipoVisitante,
                             const tc_c = (j.t2_conv || 0) + (j.t3_conv || 0)
                             const tc_i = (j.t2_total || 0) + (j.t3_total || 0)
                             return (
-                                <tr key={j.id || idx} style={{ height: '11pt', backgroundColor: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                                    <td style={{ textAlign: 'center' }}>{j.numero}{j.es_titular ? ' *' : ''}</td>
-                                    <td style={{ textAlign: 'left', paddingLeft: '3pt', textTransform: 'uppercase' }}>{j.nombre}</td>
+                                <tr key={j.id || idx}>
+                                    <td>{j.numero}{j.es_titular ? '*' : ''}</td>
+                                    <td style={{ textAlign: 'left', paddingLeft: '2mm', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden' }}>{j.nombre}</td>
                                     {esNJ ? (
                                         <>
-                                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>NJ</td>
-                                            {Array(20).fill(null).map((_, i) => <td key={i} style={{ textAlign: 'center', color: '#ccc' }}>—</td>)}
+                                            <td style={{ fontWeight: 'bold' }}>DNP</td>
+                                            {Array(20).fill(null).map((_, i) => <td key={i} style={{ color: '#ccc' }}>-</td>)}
                                         </>
                                     ) : (
                                         <>
-                                            <td style={{ textAlign: 'center' }}>{j.minutos || '0:00'}</td>
-                                            <td style={{ textAlign: 'center' }}>{tc_c}/{tc_i}</td>
-                                            <td style={{ textAlign: 'center' }}>{pct(tc_c, tc_i)}</td>
-                                            <td style={{ textAlign: 'center' }}>{j.t2_conv || 0}/{j.t2_total || 0}</td>
-                                            <td style={{ textAlign: 'center' }}>{pct(j.t2_conv, j.t2_total)}</td>
-                                            <td style={{ textAlign: 'center' }}>{j.t3_conv || 0}/{j.t3_total || 0}</td>
-                                            <td style={{ textAlign: 'center' }}>{pct(j.t3_conv, j.t3_total)}</td>
-                                            <td style={{ textAlign: 'center' }}>{j.tl_conv || 0}/{j.tl_total || 0}</td>
-                                            <td style={{ textAlign: 'center' }}>{pct(j.tl_conv, j.tl_total)}</td>
-                                            <td style={{ textAlign: 'center' }}>{j.rebotes_ofensivos || 0}</td>
-                                            <td style={{ textAlign: 'center' }}>{j.rebotes_defensivos || 0}</td>
-                                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{j.rebotes_totales || 0}</td>
-                                            <td style={{ textAlign: 'center' }}>{j.asistencias || 0}</td>
-                                            <td style={{ textAlign: 'center' }}>{j.perdidas || 0}</td>
-                                            <td style={{ textAlign: 'center' }}>{j.recuperos || 0}</td>
-                                            <td style={{ textAlign: 'center' }}>{j.bloqueos || 0}</td>
-                                            <td style={{ textAlign: 'center' }}>{j.faltas || 0}</td>
-                                            <td style={{ textAlign: 'center' }}>{j.faltas_recibidas || 0}</td>
-                                            <td style={{ textAlign: 'center' }}>{j.mas_menos || 0}</td>
-                                            <td style={{ textAlign: 'center' }}>{Math.round(j.eficiencia || 0)}</td>
-                                            <td style={{ textAlign: 'center', fontWeight: '900', backgroundColor: '#e8e8e8' }}>{j.puntos || 0}</td>
+                                            <td>{j.minutos || '0:00'}</td>
+                                            <td>{tc_c}/{tc_i}</td><td>{pct(tc_c, tc_i)}</td>
+                                            <td>{j.t2_conv || 0}/{j.t2_total || 0}</td><td>{pct(j.t2_conv, j.t2_total)}</td>
+                                            <td>{j.t3_conv || 0}/{j.t3_total || 0}</td><td>{pct(j.t3_conv, j.t3_total)}</td>
+                                            <td>{j.tl_conv || 0}/{j.tl_total || 0}</td><td>{pct(j.tl_conv, j.tl_total)}</td>
+                                            <td>{j.rebotes_ofensivos || 0}</td><td>{j.rebotes_defensivos || 0}</td><td style={{ fontWeight: 'bold' }}>{j.rebotes_totales || 0}</td>
+                                            <td>{j.asistencias || 0}</td><td>{j.perdidas || 0}</td><td>{j.recuperos || 0}</td><td>{j.bloqueos || 0}</td>
+                                            <td>{j.faltas || 0}</td><td>{j.faltas_recibidas || 0}</td>
+                                            <td>{j.mas_menos || 0}</td><td>{Math.round(j.eficiencia || 0)}</td>
+                                            <td style={{ fontWeight: '900', backgroundColor: '#e8e8e8' }}>{j.puntos || 0}</td>
                                         </>
                                     )}
                                 </tr>
                             )
                         })}
-
-                        {/* Fila Equipo/Entrenador */}
-                        <tr style={{ height: '11pt' }}>
-                            <td colSpan={2} style={{ paddingLeft: '3pt', fontStyle: 'italic' }}>Equipo/Entrenador</td>
-                            <td style={{ textAlign: 'center' }}></td>
-                            {Array(18).fill(null).map((_, i) => <td key={i} style={{ textAlign: 'center' }}>0</td>)}
-                            <td style={{ textAlign: 'center' }}></td>
-                            <td style={{ textAlign: 'center' }}></td>
-                            <td style={{ textAlign: 'center', backgroundColor: '#e8e8e8', fontWeight: '900' }}>0</td>
-                        </tr>
-
-                        {/* Fila TOTALES */}
-                        <tr style={{ height: '13pt', backgroundColor: '#e0e0e0' }}>
-                            <td colSpan={2} style={{ paddingLeft: '3pt', fontWeight: '900', textTransform: 'uppercase' }}>Totales</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>200:00</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{tc_c}/{tc_i}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{pct(tc_c, tc_i)}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{t.t2_c}/{t.t2_i}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{pct(t.t2_c, t.t2_i)}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{t.t3_c}/{t.t3_i}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{pct(t.t3_c, t.t3_i)}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{t.tl_c}/{t.tl_i}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{pct(t.tl_c, t.tl_i)}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{t.ro}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{t.rd}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{t.rt}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{t.as}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{t.per}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{t.rec}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{t.tf}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{t.fc}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{t.fr}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{t.mm}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{Math.round(t.ef)}</td>
-                            <td style={{ textAlign: 'center', fontWeight: '900', backgroundColor: '#ccc' }}>{t.pts}</td>
+                        <tr style={{ backgroundColor: '#eee', fontWeight: '900' }}>
+                            <td colSpan={2} style={{ textAlign: 'left', paddingLeft: '2mm' }}>TOTALS</td>
+                            <td>200:00</td>
+                            <td>{tc_c}/{tc_i}</td><td>{pct(tc_c, tc_i)}</td>
+                            <td>{t.t2_c}/{t.t2_i}</td><td>{pct(t.t2_c, t.t2_i)}</td>
+                            <td>{t.t3_c}/{t.t3_i}</td><td>{pct(t.t3_c, t.t3_i)}</td>
+                            <td>{t.tl_c}/{t.tl_i}</td><td>{pct(t.tl_c, t.tl_i)}</td>
+                            <td>{t.ro}</td><td>{t.rd}</td><td>{t.rt}</td>
+                            <td>{t.as}</td><td>{t.per}</td><td>{t.rec}</td><td>{t.tf}</td>
+                            <td>{t.fc}</td><td>{t.fr}</td>
+                            <td>{t.mm}</td><td>{Math.round(t.ef)}</td>
+                            <td style={{ backgroundColor: '#ccc' }}>{t.pts}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -170,194 +144,113 @@ export default function PrintableReport({ partido, equipoLocal, equipoVisitante,
     }
 
     return (
-        <div
-            id="fiba-printable-report"
-            style={{
-                backgroundColor: 'white', color: 'black', fontFamily: 'Arial, sans-serif',
-                width: '100%', padding: '10pt', fontSize: '7.5pt', lineHeight: '1.2',
-                display: 'flex', flexDirection: 'column', minHeight: '100vh'
-            }}
-        >
-            {/* ── 1. HEADER ── */}
-            <div style={{ borderBottom: '2px solid black', paddingBottom: '6pt', marginBottom: '6pt' }}>
+        <div id="print-container">
+            <div id="fiba-printable-report">
 
-                {/* Fila 1: Logo + Título + Info juego */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4pt' }}>
-                    <div style={{ display: 'flex', gap: '10pt', alignItems: 'center' }}>
-                        <div style={{ width: '50pt', height: '50pt', border: '1px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '6pt', fontWeight: 'bold', textAlign: 'center', backgroundColor: '#f5f5f5' }}>
-                            LOGO
-                        </div>
+                {/* 1. HEADER (25mm) */}
+                <div className="header" style={{ height: '25mm', borderBottom: '2px solid black', marginBottom: '2mm', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '4mm', alignItems: 'center' }}>
+                        <div style={{ width: '15mm', height: '15mm', border: '1px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 'bold' }}>LOGO</div>
                         <div>
-                            <div style={{ fontSize: '11pt', fontWeight: '900', textTransform: 'uppercase', lineHeight: 1.1 }}>
-                                {partido.competicion || 'Liga Nacional de Baloncesto'}
-                            </div>
-                            <div style={{ fontSize: '8pt', fontWeight: 'bold', textTransform: 'uppercase', color: '#444' }}>
-                                Planilla Estadística — FIBA
-                            </div>
-                            <div style={{ fontSize: '7pt', marginTop: '2pt', color: '#555' }}>
-                                {partido.cancha || 'Estadio Oficial'} &nbsp;|&nbsp;
-                                {new Date(partido.fecha).toLocaleDateString('es-DO', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })} &nbsp;|&nbsp;
-                                Juego No: {partido.id}
-                            </div>
+                            <div style={{ fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>{partido.competicion || 'Liga Nacional'}</div>
+                            <div style={{ fontSize: '9px', fontWeight: 'bold' }}>OFFICIAL STATISTICAL SHEET</div>
+                            <div style={{ fontSize: '8px' }}>{partido.cancha} | {new Date(partido.fecha).toLocaleDateString()} | Game #{partido.id}</div>
                         </div>
                     </div>
-
-                    <div style={{ textAlign: 'right', fontSize: '7pt' }}>
-                        <div style={{ fontWeight: 'bold', marginBottom: '2pt' }}>
-                            Árbitro: <span style={{ fontWeight: '900' }}>{partido.arbitro_principal || '_______________'}</span>
-                        </div>
-                        <div>
-                            Árbitro(s): <strong>{partido.arbitro_asistente1 || '_______________'}</strong>
-                            {partido.arbitro_asistente2 && <>, <strong>{partido.arbitro_asistente2}</strong></>}
-                        </div>
-                        <div style={{ marginTop: '3pt', color: '#777', fontStyle: 'italic' }}>
-                            Reporte generado: {new Date().toLocaleDateString('es-DO')} {new Date().toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
+                    <div style={{ textAlign: 'right', fontSize: '8px' }}>
+                        <div>Ref: <strong>{partido.arbitro_principal}</strong></div>
+                        <div>Ump: <strong>{partido.arbitro_asistente1}</strong>, <strong>{partido.arbitro_asistente2}</strong></div>
+                        <div style={{ fontStyle: 'italic', marginTop: '1mm' }}>{new Date().toLocaleString()}</div>
                     </div>
                 </div>
 
-                {/* Fila 2: Marcador final + parciales */}
-                <div style={{ border: '1px solid black', padding: '4pt 8pt', backgroundColor: '#f8f8f8', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-
-                    {/* Marcador */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12pt' }}>
+                {/* 2. SCORE (15mm) */}
+                <div className="score" style={{ height: '15mm', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid black', padding: '0 4mm', backgroundColor: '#f9f9f9', marginBottom: '2mm' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6mm' }}>
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '9pt', fontWeight: '900', textTransform: 'uppercase' }}>{equipoVisitante?.nombre}</div>
-                            <div style={{ fontSize: '22pt', fontWeight: '900', lineHeight: 1 }}>{partido.pts_visitante}</div>
+                            <div style={{ fontSize: '9px', fontWeight: '900' }}>{equipoVisitante?.nombre}</div>
+                            <div style={{ fontSize: '18px', fontWeight: '900' }}>{partido.pts_visitante}</div>
                         </div>
-                        <div style={{ fontSize: '9pt', color: '#aaa', fontWeight: 'bold' }}>VS</div>
+                        <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#999' }}>VS</div>
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '9pt', fontWeight: '900', textTransform: 'uppercase' }}>{equipoLocal?.nombre}</div>
-                            <div style={{ fontSize: '22pt', fontWeight: '900', lineHeight: 1 }}>{partido.pts_local}</div>
+                            <div style={{ fontSize: '9px', fontWeight: '900' }}>{equipoLocal?.nombre}</div>
+                            <div style={{ fontSize: '18px', fontWeight: '900' }}>{partido.pts_local}</div>
                         </div>
                     </div>
-
-                    {/* Parciales */}
                     <div style={{ textAlign: 'center' }}>
-                        {parcialesPorCuarto.length > 0 && (
-                            <div style={{ fontSize: '7pt', color: '#555', marginBottom: '3pt' }}>
-                                ({parcialesPorCuarto.join(', ')})
-                            </div>
-                        )}
-                        <div style={{ fontSize: '7pt', fontWeight: 'bold', marginBottom: '3pt', textTransform: 'uppercase' }}>
-                            Resultado por 5 intervalos de minutos
-                        </div>
-                        <table className="fiba-table" style={{ fontSize: '7pt' }}>
+                        <div style={{ fontSize: '8px', marginBottom: '1mm' }}>Interval Scores</div>
+                        <table style={{ fontSize: '7px', width: '80mm' }}>
                             <thead>
-                                <tr style={{ backgroundColor: '#e0e0e0' }}>
-                                    <th style={{ width: '30pt' }}></th>
-                                    <th colSpan={2}>C1</th>
-                                    <th colSpan={2}>C2</th>
-                                    <th colSpan={2}>C3</th>
-                                    <th colSpan={2}>C4</th>
+                                <tr style={{ backgroundColor: '#eee' }}>
+                                    <th></th><th colSpan={2}>Q1</th><th colSpan={2}>Q2</th><th colSpan={2}>Q3</th><th colSpan={2}>Q4</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td style={{ fontWeight: 'bold', textAlign: 'center', textTransform: 'uppercase' }}>{equipoLocal?.abrev}</td>
-                                    {[1,2,3,4].map(q => [1,2].map(i => (
-                                        <td key={`l-${q}-${i}`} style={{ textAlign: 'center', backgroundColor: i === 2 ? '#f0f0f0' : '#fff' }}>
-                                            {getScoreToInterval(partido.local_id, q, i)}
-                                        </td>
-                                    )))}
+                                    <td>{equipoLocal?.abrev}</td>
+                                    {[1, 2, 3, 4].map(q => [1, 2].map(i => <td key={`l-${q}-${i}`}>{getScoreToInterval(partido.local_id, q, i)}</td>))}
                                 </tr>
                                 <tr>
-                                    <td style={{ fontWeight: 'bold', textAlign: 'center', textTransform: 'uppercase' }}>{equipoVisitante?.abrev}</td>
-                                    {[1,2,3,4].map(q => [1,2].map(i => (
-                                        <td key={`v-${q}-${i}`} style={{ textAlign: 'center', backgroundColor: i === 2 ? '#f0f0f0' : '#fff' }}>
-                                            {getScoreToInterval(partido.visitante_id, q, i)}
-                                        </td>
-                                    )))}
+                                    <td>{equipoVisitante?.abrev}</td>
+                                    {[1, 2, 3, 4].map(q => [1, 2].map(i => <td key={`v-${q}-${i}`}>{getScoreToInterval(partido.visitante_id, q, i)}</td>))}
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
-            </div>
 
-            {/* ── 2. TABLAS JUGADORES ── */}
-            <div style={{ flexGrow: 1, marginBottom: '6pt' }}>
-                {renderStatsTable(equipoLocal, statsLocal, true)}
-                {renderStatsTable(equipoVisitante, statsVisitante, false)}
-            </div>
-
-            {/* ── 3. SECCIÓN INFERIOR ── */}
-            <div style={{ borderTop: '2px solid black', paddingTop: '6pt', display: 'flex', gap: '10pt', alignItems: 'flex-start' }}>
-
-                {/* Análisis de Puntos */}
-                <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: '900', fontSize: '7.5pt', textTransform: 'uppercase', borderBottom: '1px solid black', marginBottom: '2pt', paddingBottom: '1pt' }}>
-                        Análisis de Puntos
-                    </div>
-                    <table className="fiba-table" style={{ width: '100%' }}>
-                        <thead>
-                            <tr style={{ backgroundColor: '#f0f0f0' }}>
-                                <th style={{ textAlign: 'left', paddingLeft: '3pt' }}>Categoría</th>
-                                <th style={{ width: '35pt' }}>{equipoLocal?.abrev}</th>
-                                <th style={{ width: '35pt' }}>{equipoVisitante?.abrev}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td style={{ paddingLeft: '3pt' }}>Pts de pérdidas</td><td style={{ textAlign: 'center', fontWeight: 'bold' }}>{der.pts_tras_perdida?.local || 0}</td><td style={{ textAlign: 'center', fontWeight: 'bold' }}>{der.pts_tras_perdida?.visitante || 0}</td></tr>
-                            <tr><td style={{ paddingLeft: '3pt' }}>Pts en la pintura</td><td style={{ textAlign: 'center', fontWeight: 'bold' }}>{der.pts_pintura?.local || 0}</td><td style={{ textAlign: 'center', fontWeight: 'bold' }}>{der.pts_pintura?.visitante || 0}</td></tr>
-                            <tr><td style={{ paddingLeft: '3pt' }}>Pts 2da oportunidad</td><td style={{ textAlign: 'center', fontWeight: 'bold' }}>{der.pts_segunda_oportunidad?.local || 0}</td><td style={{ textAlign: 'center', fontWeight: 'bold' }}>{der.pts_segunda_oportunidad?.visitante || 0}</td></tr>
-                            <tr><td style={{ paddingLeft: '3pt' }}>Pts de contra ataque</td><td style={{ textAlign: 'center', fontWeight: 'bold' }}>{der.pts_contraataque?.local || 0}</td><td style={{ textAlign: 'center', fontWeight: 'bold' }}>{der.pts_contraataque?.visitante || 0}</td></tr>
-                            <tr><td style={{ paddingLeft: '3pt' }}>Pts de la banca</td><td style={{ textAlign: 'center', fontWeight: 'bold' }}>{der.pts_banquillo?.local || 0}</td><td style={{ textAlign: 'center', fontWeight: 'bold' }}>{der.pts_banquillo?.visitante || 0}</td></tr>
-                        </tbody>
-                    </table>
+                {/* 3. TABLES (190mm approx remaining, but we need to fit other stuff) */}
+                <div className="table-section" style={{ flex: 1 }}>
+                    {renderStatsTable(equipoLocal, statsLocal, true)}
+                    {renderStatsTable(equipoVisitante, statsVisitante, false)}
                 </div>
 
-                {/* Hitos del Partido */}
-                <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: '900', fontSize: '7.5pt', textTransform: 'uppercase', borderBottom: '1px solid black', marginBottom: '2pt', paddingBottom: '1pt' }}>
-                        Hitos del Partido
+                {/* 4. FOOTER / SUMMARIES (40mm) */}
+                <div style={{ marginTop: '2mm', display: 'flex', gap: '4mm', borderTop: '2px solid black', paddingTop: '2mm' }}>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '8px', fontWeight: '900', borderBottom: '1px solid black', marginBottom: '1mm' }}>SCORING ANALYSIS</div>
+                        <table className="fiba-table">
+                            <thead><tr><th>Category</th><th>{equipoLocal?.abrev}</th><th>{equipoVisitante?.abrev}</th></tr></thead>
+                            <tbody>
+                                <tr><td>Points from Turnovers</td><td>{der.pts_tras_perdida?.local || 0}</td><td>{der.pts_tras_perdida?.visitante || 0}</td></tr>
+                                <tr><td>Points in the Paint</td><td>{der.pts_pintura?.local || 0}</td><td>{der.pts_pintura?.visitante || 0}</td></tr>
+                                <tr><td>Second Chance Points</td><td>{der.pts_segunda_oportunidad?.local || 0}</td><td>{der.pts_segunda_oportunidad?.visitante || 0}</td></tr>
+                                <tr><td>Fast Break Points</td><td>{der.pts_contraataque?.local || 0}</td><td>{der.pts_contraataque?.visitante || 0}</td></tr>
+                                <tr><td>Bench Points</td><td>{der.pts_banquillo?.local || 0}</td><td>{der.pts_banquillo?.visitante || 0}</td></tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <table className="fiba-table" style={{ width: '100%' }}>
-                        <thead>
-                            <tr style={{ backgroundColor: '#f0f0f0' }}>
-                                <th style={{ textAlign: 'left', paddingLeft: '3pt' }}></th>
-                                <th style={{ width: '55pt' }}>{equipoLocal?.abrev}</th>
-                                <th style={{ width: '55pt' }}>{equipoVisitante?.abrev}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td style={{ paddingLeft: '3pt' }}>Mayor ventaja</td><td style={{ textAlign: 'center', fontWeight: 'bold' }}>{izq.mayor_ventaja?.local || 0}</td><td style={{ textAlign: 'center', fontWeight: 'bold' }}>{izq.mayor_ventaja?.visitante || 0}</td></tr>
-                            <tr><td style={{ paddingLeft: '3pt' }}>Mayor racha anotación consecutiva</td><td style={{ textAlign: 'center', fontWeight: 'bold' }}>{izq.mayor_racha?.local || 0}</td><td style={{ textAlign: 'center', fontWeight: 'bold' }}>{izq.mayor_racha?.visitante || 0}</td></tr>
-                            <tr><td style={{ paddingLeft: '3pt' }}>Cambios de liderazgo</td><td style={{ textAlign: 'center', fontWeight: 'bold' }} colSpan={2}>{izq.cambios_liderazgo || 0}</td></tr>
-                            <tr><td style={{ paddingLeft: '3pt' }}>Empates</td><td style={{ textAlign: 'center', fontWeight: 'bold' }} colSpan={2}>{izq.empates || 0}</td></tr>
-                            <tr><td style={{ paddingLeft: '3pt' }}>Tiempo liderando</td><td style={{ textAlign: 'center', fontWeight: 'bold' }}>{izq.tiempo_con_ventaja?.local || '00:00'}</td><td style={{ textAlign: 'center', fontWeight: 'bold' }}>{izq.tiempo_con_ventaja?.visitante || '00:00'}</td></tr>
-                        </tbody>
-                    </table>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '8px', fontWeight: '900', borderBottom: '1px solid black', marginBottom: '1mm' }}>GAME HIGHLIGHTS</div>
+                        <table className="fiba-table">
+                            <thead><tr><th></th><th>{equipoLocal?.abrev}</th><th>{equipoVisitante?.abrev}</th></tr></thead>
+                            <tbody>
+                                <tr><td>Biggest Lead</td><td>{izq.mayor_ventaja?.local || 0}</td><td>{izq.mayor_ventaja?.visitante || 0}</td></tr>
+                                <tr><td>Biggest Scoring Run</td><td>{izq.mayor_racha?.local || 0}</td><td>{izq.mayor_racha?.visitante || 0}</td></tr>
+                                <tr><td>Lead Changes</td><td colSpan={2}>{izq.cambios_liderazgo || 0}</td></tr>
+                                <tr><td>Times Tied</td><td colSpan={2}>{izq.empates || 0}</td></tr>
+                                <tr><td>Time Leading</td><td>{izq.tiempo_con_ventaja?.local || '00:00'}</td><td>{izq.tiempo_con_ventaja?.visitante || '00:00'}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '8px', fontWeight: '900', borderBottom: '1px solid black', marginBottom: '1mm' }}>SIGNATURES</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3mm', marginTop: '2mm' }}>
+                            <div style={{ borderBottom: '1px solid black', height: '6mm', position: 'relative' }}>
+                                <span style={{ fontSize: '6px', position: 'absolute', bottom: '-4px' }}>HEAD REFEREE</span>
+                            </div>
+                            <div style={{ borderBottom: '1px solid black', height: '6mm', position: 'relative' }}>
+                                <span style={{ fontSize: '6px', position: 'absolute', bottom: '-4px' }}>TABLE OFFICIAL</span>
+                            </div>
+                            <div style={{ borderBottom: '1px solid black', height: '6mm', position: 'relative' }}>
+                                <span style={{ fontSize: '6px', position: 'absolute', bottom: '-4px' }}>FIBA COMMISSIONER</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Leyenda */}
-                <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: '900', fontSize: '7.5pt', textTransform: 'uppercase', borderBottom: '1px solid black', marginBottom: '2pt', paddingBottom: '1pt' }}>
-                        Leyenda
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1pt 8pt', fontSize: '6.5pt', backgroundColor: '#f8f8f8', padding: '3pt', border: '1px solid #ddd' }}>
-                        {[
-                            ['No','Número jugador'], ['Min','Minutos jugados'], ['C/I','Conv / Intentados'],
-                            ['%','Porcentaje de tiro'], ['RO','Rebotes ofensivos'], ['RD','Rebotes defensivos'],
-                            ['RT','Rebotes totales'], ['AS','Asistencias'], ['Per','Pérdidas'],
-                            ['Rec','Recuperos'], ['TF','Bloqueos'], ['FC','Faltas cometidas'],
-                            ['FR','Faltas recibidas'], ['+/-','Más/Menos'], ['Ef','Eficiencia'],
-                            ['Pts','Puntos'], ['NJ','No Jugó'], ['*','Titular'],
-                        ].map(([k, v]) => (
-                            <div key={k}><span style={{ color: '#888', fontWeight: 'bold' }}>{k}</span> {v}</div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* ── 4. FIRMAS ── */}
-            <div style={{ marginTop: '20pt', display: 'flex', justifyContent: 'space-around', gap: '20pt', fontSize: '7.5pt', fontWeight: 'bold', textAlign: 'center', textTransform: 'uppercase' }}>
-                {['Firma Árbitro Principal', 'Firma Oficial de Mesa', 'Firma Comisario FIBA'].map(f => (
-                    <div key={f} style={{ flex: 1 }}>
-                        <div style={{ borderTop: '1.5px solid black', paddingTop: '3pt' }}>{f}</div>
-                    </div>
-                ))}
             </div>
         </div>
     )
 }
+
