@@ -8,6 +8,9 @@ COPY package*.json ./
 RUN npm install
 
 # Copiar código y construir
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
 COPY . .
 RUN npm run build
 
