@@ -47,3 +47,8 @@ fiba-stats-system/electron/release/
 fiba-stats-system/frontend/dist/
 fiba-stats-system/backend/venv/
 node_modules/
+# Database (NO subir nunca)
+*.db
+
+# Data backend
+fiba-stats-system/backend/data/
