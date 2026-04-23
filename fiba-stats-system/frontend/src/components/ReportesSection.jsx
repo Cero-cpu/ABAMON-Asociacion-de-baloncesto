@@ -23,9 +23,16 @@ const StatCard = ({ label, value, sub, icon: Icon, color }) => (
 )
 
 export default function ReportesSection({ equipos, partidos }) {
-    const [partidoSeleccionado, setPartidoSeleccionado] = useState('')
+    const [busqueda, setBusqueda] = useState('')
     const [cargando, setCargando] = useState(false)
     const [error, setError] = useState(null)
+
+    const partidosFiltrados = partidos.filter(p => {
+        const local = equipos.find(e => e.id === p.local_id)?.nombre || ''
+        const vis = equipos.find(e => e.id === p.visitante_id)?.nombre || ''
+        return local.toLowerCase().includes(busqueda.toLowerCase()) ||
+            vis.toLowerCase().includes(busqueda.toLowerCase())
+    })
 
     return (
         <div className="flex flex-col gap-8 max-w-[1500px] mx-auto w-full">
@@ -34,42 +41,53 @@ export default function ReportesSection({ equipos, partidos }) {
             <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between border-b border-white/5 pb-12 gap-8">
                 <div className="overflow-hidden">
                     <h1 className="text-4xl lg:text-5xl xl:text-6xl font-black italic tracking-tighter uppercase leading-none">
-                        Consola de <span className="text-[#0078D4]">Reportes</span>
+                        Gestión de <span className="text-[#0078D4]">Reportes</span>
                     </h1>
                     <p className="text-[#444] text-[11px] font-black tracking-[0.6em] uppercase mt-6">
-                        Planilla Estadística Oficial FIBA
+                        Descarga de Actas y Resultados Oficiales
                     </p>
                 </div>
 
-                {/* Panel removido temporalmente hasta reconstrucción */}
-                <div className="pro-tool-window bg-[#121212] border-white/10 p-6 flex flex-col gap-4 w-full lg:w-[360px] flex-shrink-0">
+                <div className="flex flex-col gap-4 w-full lg:w-[360px]">
                     <p className="text-[9px] font-black text-[#555] uppercase tracking-[0.4em]">
-                        MÓDULO DE IMPRESIÓN OFFLINE
+                        BUSCAR POR EQUIPO
                     </p>
+                    <input
+                        type="text"
+                        placeholder="Escribe el nombre de un equipo..."
+                        className="control-input w-full"
+                        value={busqueda}
+                        onChange={(e) => setBusqueda(e.target.value)}
+                    />
                 </div>
             </div>
 
             {/* Métricas */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                <StatCard label="Total_Equipos" value={equipos.length} sub="ENTIDADES REGISTRADAS" icon={Database} />
-                <StatCard label="Partidos_Jugados" value={partidos.length} sub="HISTÓRICO COMPLETO" icon={Activity} color="text-green-500" />
-                <StatCard label="Finalizados" value={partidos.filter(p => p.estado === 'finalizado').length} sub="ESTADO FINAL" icon={BarChart3} color="text-purple-500" />
-                <StatCard label="En_Curso" value={partidos.filter(p => p.estado === 'en_curso').length} sub="LIVE ACTIVOS" icon={ShieldCheck} color="text-amber-500" />
+                <StatCard label="Equipos_Inscritos" value={equipos.length} sub="BASE DE DATOS" icon={Database} />
+                <StatCard label="Total_Encuentros" value={partidos.length} sub="PARTIDOS REGISTRADOS" icon={Activity} color="text-green-500" />
+                <StatCard label="Finalizados" value={partidos.filter(p => p.estado === 'finalizado').length} sub="LISTOS PARA IMPRIMIR" icon={BarChart3} color="text-purple-500" />
+                <StatCard label="En_Cancha" value={partidos.filter(p => p.estado === 'en_curso').length} sub="ACTUALMENTE EN JUEGO" icon={ShieldCheck} color="text-amber-500" />
             </div>
 
             {/* Lista de partidos */}
             <div className="pro-tool-window bg-[#121212] border-white/5 overflow-hidden">
-                <div className="grid-panel-header flex items-center gap-3">
-                    <FileText size={12} className="text-[#0078D4]" />
-                    REGISTRO DE PARTIDOS
+                <div className="grid-panel-header flex items-center justify-between px-6">
+                    <div className="flex items-center gap-3">
+                        <FileText size={12} className="text-[#0078D4]" />
+                        LISTADO DE PARTIDOS JUGADOS
+                    </div>
+                    <span className="text-[9px] text-white/20 font-mono uppercase tracking-widest">
+                        {partidosFiltrados.length} RESULTADOS ENCONTRADOS
+                    </span>
                 </div>
-                <div className="divide-y divide-white/5">
-                    {partidos.length === 0 && (
+                <div className="divide-y divide-white/5 max-h-[600px] overflow-y-auto custom-scrollbar">
+                    {partidosFiltrados.length === 0 && (
                         <p className="text-[#444] text-[11px] font-black text-center py-10 uppercase tracking-widest">
                             Sin partidos registrados
                         </p>
                     )}
-                    {partidos.map(p => {
+                    {partidosFiltrados.map(p => {
                         const local = equipos.find(e => e.id === p.local_id)
                         const vis = equipos.find(e => e.id === p.visitante_id)
                         return (
@@ -90,9 +108,16 @@ export default function ReportesSection({ equipos, partidos }) {
                                         }`}>
                                         {p.estado}
                                     </span>
-                                    <span className="control-button h-8 px-4 text-[9px] opacity-50 cursor-not-allowed">
-                                        MÓDULO OFFLINE
-                                    </span>
+                                    <button
+                                        onClick={() => {
+                                            const url = `/#/acta?id=${p.id}`;
+                                            window.open(url, 'FIBA_Print', 'width=1100,height=850');
+                                        }}
+                                        disabled={p.estado !== 'finalizado'}
+                                        className={`control-button h-8 px-4 text-[9px] ${p.estado === 'finalizado' ? 'opacity-100 border-[#0078D4] text-[#0078D4]' : 'opacity-30 cursor-not-allowed'}`}
+                                    >
+                                        {p.estado === 'finalizado' ? 'DESCARGAR ACTA OFICIAL' : 'PARTIDO EN CURSO'}
+                                    </button>
                                 </div>
                             </div>
                         )

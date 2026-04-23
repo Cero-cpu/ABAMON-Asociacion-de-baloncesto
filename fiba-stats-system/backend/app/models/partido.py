@@ -26,6 +26,10 @@ class Partido(Base):
     estado             = Column(Enum(EstadoPartido), default=EstadoPartido.PENDIENTE)
     pts_local          = Column(Integer, default=0)
     pts_visitante      = Column(Integer, default=0)
+    faltas_equipo_local = Column(Integer, default=0)
+    faltas_equipo_vis   = Column(Integer, default=0)
+    timeouts_local     = Column(Integer, default=0)
+    timeouts_vis       = Column(Integer, default=0)
     tiempo_restante    = Column(Integer, default=600)  # Segundos restantes (10 min)
     reloj_activo       = Column(Boolean, default=False)
 

@@ -58,6 +58,22 @@ def registrar_evento(db: Session, partido_id: int, jugador_id: int,
         for campo, valor in s.items():
             setattr(stats, campo, valor)
 
+    # Lógica de Equipo (Faltas y Timeouts) - Independiente de si hay jugador o no
+    if tipo == "FALTA":
+        partido = db.query(Partido).filter(Partido.id == partido_id).first()
+        if partido:
+            if equipo_id == partido.local_id:
+                partido.faltas_equipo_local += 1
+            elif equipo_id == partido.visitante_id:
+                partido.faltas_equipo_vis += 1
+    elif tipo == "TIMEOUT":
+        partido = db.query(Partido).filter(Partido.id == partido_id).first()
+        if partido:
+            if equipo_id == partido.local_id:
+                partido.timeouts_local += 1
+            elif equipo_id == partido.visitante_id:
+                partido.timeouts_vis += 1
+
     if tipo in PUNTOS_EVENTO:
         partido = db.query(Partido).filter(Partido.id == partido_id).first()
         if partido and equipo_id:
@@ -73,7 +89,7 @@ def registrar_evento(db: Session, partido_id: int, jugador_id: int,
 def deshacer_ultimo_evento(db: Session, partido_id: int):
     ultimo = db.query(Evento).filter_by(
         partido_id=partido_id, deshecho=0
-    ).order_by(Evento.timestamp.desc()).first()
+    ).order_by(Evento.id.desc()).first()
 
     if not ultimo:
         return None
@@ -85,10 +101,27 @@ def deshacer_ultimo_evento(db: Session, partido_id: int):
         if stats:
             for campo, valor in INCREMENTOS[ultimo.tipo].items():
                 setattr(stats, campo, max(0, getattr(stats, campo) - valor))
+            
             s = {c.name: getattr(stats, c.name) for c in stats.__table__.columns}
             s = recalcular_stats(s)
             for campo, valor in s.items():
                 setattr(stats, campo, valor)
+
+    # Deshacer lógica de equipo
+    if ultimo.tipo == "FALTA":
+        partido = db.query(Partido).filter(Partido.id == partido_id).first()
+        if partido:
+            if ultimo.equipo_id == partido.local_id:
+                partido.faltas_equipo_local = max(0, partido.faltas_equipo_local - 1)
+            elif ultimo.equipo_id == partido.visitante_id:
+                partido.faltas_equipo_vis = max(0, partido.faltas_equipo_vis - 1)
+    elif ultimo.tipo == "TIMEOUT":
+        partido = db.query(Partido).filter(Partido.id == partido_id).first()
+        if partido:
+            if ultimo.equipo_id == partido.local_id:
+                partido.timeouts_local = max(0, partido.timeouts_local - 1)
+            elif ultimo.equipo_id == partido.visitante_id:
+                partido.timeouts_vis = max(0, partido.timeouts_vis - 1)
 
     if ultimo.tipo in PUNTOS_EVENTO:
         partido = db.query(Partido).filter(Partido.id == partido_id).first()
@@ -106,7 +139,7 @@ def deshacer_ultimo_evento(db: Session, partido_id: int):
 def rehacer_ultimo_evento(db: Session, partido_id: int):
     ultimo_deshecho = db.query(Evento).filter_by(
         partido_id=partido_id, deshecho=1
-    ).order_by(Evento.timestamp.desc()).first()
+    ).order_by(Evento.id.desc()).first()
 
     if not ultimo_deshecho:
         return None
@@ -127,6 +160,22 @@ def rehacer_ultimo_evento(db: Session, partido_id: int):
         s = recalcular_stats(s)
         for campo, valor in s.items():
             setattr(stats, campo, valor)
+
+    # Rehacer lógica de equipo
+    if ultimo_deshecho.tipo == "FALTA":
+        partido = db.query(Partido).filter(Partido.id == partido_id).first()
+        if partido:
+            if ultimo_deshecho.equipo_id == partido.local_id:
+                partido.faltas_equipo_local += 1
+            elif ultimo_deshecho.equipo_id == partido.visitante_id:
+                partido.faltas_equipo_vis += 1
+    elif ultimo_deshecho.tipo == "TIMEOUT":
+        partido = db.query(Partido).filter(Partido.id == partido_id).first()
+        if partido:
+            if ultimo_deshecho.equipo_id == partido.local_id:
+                partido.timeouts_local += 1
+            elif ultimo_deshecho.equipo_id == partido.visitante_id:
+                partido.timeouts_vis += 1
 
     if ultimo_deshecho.tipo in PUNTOS_EVENTO:
         partido = db.query(Partido).filter(Partido.id == partido_id).first()

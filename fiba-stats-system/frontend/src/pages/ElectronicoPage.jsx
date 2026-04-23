@@ -59,7 +59,7 @@ export default function ElectronicoPage() {
     partido, equipoLocal, equipoVisitante,
     jugadoresLocal, jugadoresVisitante,
     getStats, refreshStats, refreshPartido, parciales
-  } = usePartido(partidoId, { pollInterval: 4000, withParciales: true })
+  } = usePartido(partidoId, { pollInterval: 10000, withParciales: true })
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60)
@@ -93,44 +93,67 @@ export default function ElectronicoPage() {
 
   // --- Lógica de Intervalos (C1-C4) ---
 
+  const handleTimeout = async (teamId) => {
+    if (!partido) return
+    try {
+      await registrarEvento({
+        partido_id: parseInt(partidoId),
+        jugador_id: null,
+        equipo_id: teamId,
+        tipo: 'TIMEOUT',
+        cuarto: partido.cuarto_actual,
+        tiempo: formatTime(partido.tiempo_restante)
+      })
+      refreshPartido()
+      flash(`TIEMPO MUERTO REGISTRADO`, '#0078D4')
+    } catch (e) {
+      flash('ERROR AL REGISTRAR TIMEOUT', '#f43f5e')
+    }
+  }
+
   const handleAvanzarIntervalo = async () => {
     if (!partido) return
     const q = partido.cuarto_actual
 
-    // Verificamos qué intervalo falta guardar en este cuarto
     const p1 = parciales.find(p => p.cuarto === q && p.intervalo === 1)
     const p2 = parciales.find(p => p.cuarto === q && p.intervalo === 2)
 
-    // Suma de puntos de cuartos ANTERIORES (no incluir el cuarto actual)
     const parcialesPrevios = parciales.filter(p => p.cuarto < q)
     const sumaPreviosLocal = parcialesPrevios.reduce((acc, p) => acc + (p.pts_local || 0), 0)
     const sumaPreviosVis = parcialesPrevios.reduce((acc, p) => acc + (p.pts_visitante || 0), 0)
 
-    // Puntos anotados en el cuarto actual (total del partido menos lo de cuartos anteriores)
     const ptsCuartoLocal = partido.pts_local - sumaPreviosLocal
     const ptsCuartoVis = partido.pts_visitante - sumaPreviosVis
 
     try {
       if (!p1) {
-        // Guardar intervalo 1 (primeros 5 min del cuarto): puntos del cuarto hasta ahora
+        // Guardar intervalo 1 (5 min)
+        if (!confirm(`¿GUARDAR PUNTUACIÓN DE MITAD DEL CUARTO (${q})?`)) return
         await guardarParcial(partidoId, { cuarto: q, intervalo: 1, pts_local: ptsCuartoLocal, pts_visitante: ptsCuartoVis })
-        flash(`INTERVALO C${q}-5M REGISTRADO`, '#0078D4')
+        flash(`PUNTOS MITAD C${q} REGISTRADOS`, '#0078D4')
       } else if (!p2) {
-        // Guardar intervalo 2 (final del cuarto): puntos anotados desde intervalo 1
+        // Guardar intervalo 2 y avanzar
+        const msgConfirm = q < 4
+          ? `¿FINALIZAR CUARTO ${q} Y AVANZAR AL SIGUIENTE PERIODO?`
+          : `¿FINALIZAR ÚLTIMO CUARTO Y CERRAR EL MARCADOR?`
+
+        if (!confirm(msgConfirm)) return
+
         const ptsIntervalo2Local = ptsCuartoLocal - (p1.pts_local || 0)
         const ptsIntervalo2Vis = ptsCuartoVis - (p1.pts_visitante || 0)
         await guardarParcial(partidoId, { cuarto: q, intervalo: 2, pts_local: ptsIntervalo2Local, pts_visitante: ptsIntervalo2Vis })
+
         if (q < 4) {
           await avanzarCuarto(partidoId)
-          await handleSetReloj(600) // Reset clock to 10:00 for new quarter
-          flash(`CUARTO C${q} CERRADO -> INICIANDO C${q + 1}`, '#2ea043')
+          await handleSetReloj(600) // 10:00
+          flash(`CUARTO ${q} CERRADO - INICIANDO C${q + 1}`, '#2ea043')
         } else {
-          flash(`CUARTO C${q} CERRADO (FINAL DEL JUEGO)`, '#fbbf24')
+          flash(`JUEGO COMPLETADO - LISTO PARA FINALIZAR`, '#fbbf24')
         }
       }
       refreshPartido()
     } catch (e) {
-      flash('ERROR AL GUARDAR INTERVALO', '#f43f5e')
+      flash('ERROR AL PROCESAR CIERRE', '#f43f5e')
     }
   }
 
@@ -150,30 +173,34 @@ export default function ElectronicoPage() {
   }
 
   const handleDeshacer = async () => {
-    await deshacerEvento(partidoId)
-    refreshStats()
-    refreshPartido()
-    flash('DESHACER_COMPLETADO', '#888')
+    try {
+      await deshacerEvento(partidoId)
+      refreshStats()
+      refreshPartido()
+      flash('ACCIÓN DESHECHA', '#888')
+    } catch (e) {
+      flash('ERROR: NADA QUE DESHACER', '#f43f5e')
+    }
   }
 
   const handleRehacer = async () => {
     await rehacerEvento(partidoId)
     refreshStats()
     refreshPartido()
-    flash('REHACER_COMPLETADO', '#0078D4')
+    flash('CAMBIO REHECHO', '#0078D4')
   }
 
   const handleIniciar = async () => {
     await iniciarPartido(partidoId)
     refreshPartido()
-    flash('NUCLEO_VIVO', '#2ea043')
+    flash('PARTIDO INICIADO', '#2ea043')
   }
 
   const handleFinalizar = async () => {
-    if (!confirm("¿FINALIZAR SESIÓN TÉCNICA?")) return
+    if (!confirm("¿ESTÁS SEGURO DE FINALIZAR EL PARTIDO?")) return
     await finalizarPartido(partidoId)
     refreshPartido()
-    flash('SESION_ARCHIVADA', '#f43f5e')
+    flash('PARTIDO FINALIZADO', '#f43f5e')
   }
 
   const jugadores = tab === 'local' ? jugadoresLocal : jugadoresVisitante
@@ -184,10 +211,10 @@ export default function ElectronicoPage() {
       <div className="h-screen bg-[#0a0a0a] flex items-center justify-center font-sans overflow-hidden">
         <div className="w-full max-w-sm bg-[#111] p-10 border border-white/5 shadow-2xl relative z-10 text-center">
           <Server size={40} className="text-[#0078D4] mx-auto mb-8 animate-pulse" />
-          <h1 className="text-xl font-black tracking-[0.4em] uppercase mb-10 italic text-white">ACCESS_TOKEN <span className="text-[#0078D4]">REQUIRED</span></h1>
+          <h1 className="text-xl font-black tracking-[0.1em] uppercase mb-10 italic text-white">INGRESAR <span className="text-[#0078D4]">ID PARTIDO</span></h1>
           <input
             type="number"
-            placeholder="ID_PARTIDO"
+            placeholder="ID DEL PARTIDO"
             value={inputId}
             onChange={e => setInputId(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && inputId && (setPartidoId(inputId))}
@@ -197,9 +224,9 @@ export default function ElectronicoPage() {
             onClick={() => { if (inputId) setPartidoId(inputId) }}
             className="control-button control-button-accent w-full h-12 text-[10px] font-black uppercase tracking-[0.3em]"
           >
-            ESTABLISH_LINK
+            CARGAR PARTIDO
           </button>
-          <Link to="/admin" className="block mt-10 text-[#333] hover:text-white transition-colors text-[9px] font-black uppercase tracking-widest">CANCEL_DAEMON</Link>
+          <Link to="/admin" className="block mt-10 text-[#333] hover:text-white transition-colors text-[9px] font-black uppercase tracking-widest">VOLVER AL PANEL</Link>
         </div>
       </div>
     )
@@ -243,31 +270,62 @@ export default function ElectronicoPage() {
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-2">
             <Cpu size={12} className="text-[#444]" />
-            <span className="text-[9px] font-bold text-[#444] tracking-widest uppercase font-mono">PID: 0x{partido.id.toString(16).toUpperCase()}</span>
+            <span className="text-[9px] font-bold text-[#444] tracking-widest uppercase font-mono">ID PARTIDO: {partido.id}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[9px] font-black text-[#555] uppercase tracking-widest">LINK_STABLE</span>
+            <span className="text-[9px] font-black text-[#555] uppercase tracking-widest">CONEXIÓN ESTABLE</span>
           </div>
         </div>
       </header>
 
       {/* ── SCORE BANNER ── */}
-      <div className="h-20 bg-[#111] border-b border-white/5 flex items-center justify-between px-10 flex-shrink-0">
+      <div className="h-24 bg-[#111] border-b border-white/5 flex items-center justify-between px-10 flex-shrink-0">
+
+        {/* Local Team Info */}
         <div className="flex-1 flex items-center gap-6 overflow-hidden">
-          <div className="w-3 h-10" style={{ backgroundColor: equipoLocal?.color_principal }} />
+          <div className="w-3 h-12" style={{ backgroundColor: equipoLocal?.color_principal }} />
           <div className="overflow-hidden">
             <h2 className="text-2xl font-black italic uppercase tracking-tighter truncate">{equipoLocal?.nombre}</h2>
-            <p className="text-[9px] font-black text-[#444] tracking-widest uppercase">HOST_NODE</p>
+            <div className="flex items-center gap-6 mt-1">
+              <p className="text-[9px] font-black text-[#444] tracking-widest uppercase">EQUIPO LOCAL</p>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black text-white/40">FALTAS:</span>
+                  <span className={`text-[12px] font-oswald font-black ${partido.faltas_equipo_local >= 4 ? 'text-red-500' : 'text-[#0078D4]'}`}>
+                    {partido.faltas_equipo_local}
+                  </span>
+                  {partido.faltas_equipo_local >= 4 && (
+                    <span className="px-1.5 py-0.5 bg-red-600 text-white text-[7px] font-black rounded-sm animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]">BONUS</span>
+                  )}
+                </div>
+                <div className="h-3 w-px bg-white/10" />
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-white/40">T.O.:</span>
+                  <div className="flex gap-1">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className={`w-2 h-2 rounded-full ${i <= partido.timeouts_local ? 'bg-[#0078D4]' : 'bg-white/10'}`} />
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => handleTimeout(partido.local_id)}
+                    className="ml-1 w-6 h-6 bg-white/5 border border-white/5 hover:bg-[#0078D4]/20 hover:border-[#0078D4]/50 flex items-center justify-center rounded-sm transition-all"
+                    title="Registrar Tiempo Muerto"
+                  >
+                    <Timer size={12} className="text-[#0078D4]" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="text-5xl font-oswald font-black text-white italic ml-auto mr-10">{partido.pts_local}</div>
+          <div className="text-6xl font-oswald font-black text-white italic ml-auto mr-10 tabular-nums">{partido.pts_local}</div>
         </div>
 
-        <div className="flex flex-col items-center gap-2 min-w-[320px] border-x border-white/5 h-full justify-center bg-white/[0.01]">
+        <div className="flex flex-col items-center gap-2 min-w-[340px] border-x border-white/5 h-full justify-center bg-white/[0.01]">
           {/* Cronómetro y Periodo */}
           <div className="flex items-center gap-6">
             <div className="flex flex-col items-center">
-              <span className="text-[7px] font-black text-white/20 uppercase tracking-[0.3em] mb-1">CLOCK_FEED</span>
+              <span className="text-[7px] font-black text-white/20 uppercase tracking-[0.3em] mb-1">RELOJ</span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleToggleReloj}
@@ -285,8 +343,8 @@ export default function ElectronicoPage() {
               </div>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-[7px] font-black text-white/20 uppercase tracking-[0.3em] mb-1">PERIOD</span>
-              <div className="bg-[#0078D4]/10 border border-[#0078D4]/30 text-[#0078D4] font-oswald font-black text-3xl w-16 h-12 flex items-center justify-center shadow-[0_0_15px_rgba(0,120,212,0.1)]">P{partido.cuarto_actual}</div>
+              <span className="text-[7px] font-black text-white/20 uppercase tracking-[0.3em] mb-1">PERIODO</span>
+              <div className="bg-[#0078D4]/10 border border-[#0078D4]/30 text-[#0078D4] font-oswald font-black text-3xl w-16 h-12 flex items-center justify-center shadow-[0_0_15_rgba(0,120,212,0.1)]">P{partido.cuarto_actual}</div>
             </div>
           </div>
 
@@ -297,7 +355,7 @@ export default function ElectronicoPage() {
                 onClick={handleIniciar}
                 className="w-full h-10 bg-[#2ea043] border border-[#2ea043]/40 text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#3fb950] transition-all flex items-center justify-center gap-2 shadow-[0_5px_15px_rgba(46,160,67,0.2)]"
               >
-                <Zap size={12} fill="currentColor" /> START_GAME_CORE
+                <Zap size={12} fill="currentColor" /> INICIAR PARTIDO
               </button>
             ) : (
               <>
@@ -306,8 +364,8 @@ export default function ElectronicoPage() {
                   className="flex-1 h-10 bg-[#0078D4] border border-[#0078D4]/50 text-white text-[9px] font-black uppercase tracking-[0.15em] hover:bg-[#0086F0] transition-all shadow-[0_5px_15px_rgba(0,120,212,0.3)] flex items-center justify-center text-center px-2"
                 >
                   {!parciales.find(p => p.cuarto === partido.cuarto_actual && p.intervalo === 1)
-                    ? `CERRAR 5 MIN (C${partido.cuarto_actual})`
-                    : `CERRAR C${partido.cuarto_actual} & AVANZAR`
+                    ? `GUARDAR PUNTOS @5:00`
+                    : `CERRAR CUARTO ${partido.cuarto_actual}`
                   }
                 </button>
                 <button
@@ -322,13 +380,43 @@ export default function ElectronicoPage() {
           </div>
         </div>
 
+        {/* Visitor Team Info */}
         <div className="flex-1 flex items-center gap-6 overflow-hidden flex-row-reverse">
-          <div className="w-3 h-10" style={{ backgroundColor: equipoVisitante?.color_principal }} />
+          <div className="w-3 h-12" style={{ backgroundColor: equipoVisitante?.color_principal }} />
           <div className="overflow-hidden text-right">
             <h2 className="text-2xl font-black italic uppercase tracking-tighter truncate">{equipoVisitante?.nombre}</h2>
-            <p className="text-[9px] font-black text-[#444] tracking-widest uppercase">REMOTE_NODE</p>
+            <div className="flex items-center justify-end gap-6 mt-1">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleTimeout(partido.visitante_id)}
+                    className="mr-1 w-6 h-6 bg-white/5 border border-white/5 hover:bg-[#0078D4]/20 hover:border-[#0078D4]/50 flex items-center justify-center rounded-sm transition-all"
+                    title="Registrar Tiempo Muerto"
+                  >
+                    <Timer size={12} className="text-[#0078D4]" />
+                  </button>
+                  <div className="flex gap-1">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className={`w-2 h-2 rounded-full ${i <= partido.timeouts_vis ? 'bg-[#0078D4]' : 'bg-white/10'}`} />
+                    ))}
+                  </div>
+                  <span className="text-[10px] font-black text-white/40">T.O.:</span>
+                </div>
+                <div className="h-3 w-px bg-white/10" />
+                <div className="flex items-center gap-2">
+                  {partido.faltas_equipo_vis >= 4 && (
+                    <span className="px-1.5 py-0.5 bg-red-600 text-white text-[7px] font-black rounded-sm animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]">BONUS</span>
+                  )}
+                  <span className="text-[10px] font-black text-white/40">FALTAS:</span>
+                  <span className={`text-[12px] font-oswald font-black ${partido.faltas_equipo_vis >= 4 ? 'text-red-500' : 'text-[#0078D4]'}`}>
+                    {partido.faltas_equipo_vis}
+                  </span>
+                </div>
+              </div>
+              <p className="text-[9px] font-black text-[#444] tracking-widest uppercase">EQUIPO VISITANTE</p>
+            </div>
           </div>
-          <div className="text-5xl font-oswald font-black text-white italic mr-auto ml-10">{partido.pts_visitante}</div>
+          <div className="text-6xl font-oswald font-black text-white italic mr-auto ml-10 tabular-nums">{partido.pts_visitante}</div>
         </div>
       </div>
 
@@ -340,7 +428,7 @@ export default function ElectronicoPage() {
           <div className="p-1 flex bg-black border-b border-white/5">
             {['local', 'visitante'].map(t => (
               <button key={t} onClick={() => setTab(t)} className={`flex-1 py-2 text-[9px] font-black uppercase tracking-widest ${tab === t ? 'bg-[#1a1a1a] text-[#0078D4]' : 'text-[#444]'}`}>
-                {t === 'local' ? 'UNIT_A' : 'UNIT_B'}
+                {t === 'local' ? 'LOCAL' : 'VISITANTE'}
               </button>
             ))}
           </div>
@@ -373,7 +461,7 @@ export default function ElectronicoPage() {
           <div className="h-24 bg-[#111] border border-white/5 flex items-center px-8 justify-between relative overflow-hidden flex-shrink-0">
             <div className="absolute top-0 right-0 w-32 h-full bg-[#0078D4] blur-[80px] opacity-[0.03]" />
             {!jugadorSel ? (
-              <span className="text-[10px] font-black text-[#333] tracking-[0.6em] italic animate-pulse">NO_ACTIVE_FOCUS_DETECTED</span>
+              <span className="text-[10px] font-black text-[#333] tracking-[0.6em] italic animate-pulse">POR FAVOR, SELECCIONA UN JUGADOR</span>
             ) : (
               <>
                 <div className="flex items-center gap-6">
@@ -432,7 +520,7 @@ export default function ElectronicoPage() {
             <span>DATABASE: READ/WRITE</span>
           </div>
         </div>
-        <div className="text-[10px] font-black italic tracking-[0.4em] text-[#222] uppercase">FIBA OPERATIONAL INTERFACE v3.0</div>
+        <div className="text-[10px] font-black italic tracking-[0.4em] text-[#222] uppercase">INTERFAZ DE CONTROL FIBA v3.0</div>
       </footer>
     </div>
   )

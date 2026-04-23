@@ -35,7 +35,11 @@ def cambiar_estado(partido_id: int, estado: EstadoPartido, db: Session = Depends
 @router.put("/{partido_id}/cuarto", response_model=PartidoRead)
 def avanzar_cuarto(partido_id: int, db: Session = Depends(get_db)):
     partido = partido_service.obtener_partido_por_id(db, partido_id)
-    # Máximo 4 cuartos regulares + overtime ilimitado controlado desde el frontend
+    # Al avanzar cuarto, se resetean las faltas de equipo (FIBA) y se para el reloj
+    partido.faltas_equipo_local = 0
+    partido.faltas_equipo_vis = 0
+    partido.reloj_activo = False
+
     if partido.cuarto_actual < 4:
         partido.cuarto_actual += 1
         partido.tiempo_restante = 600  # Reset a 10 minutos

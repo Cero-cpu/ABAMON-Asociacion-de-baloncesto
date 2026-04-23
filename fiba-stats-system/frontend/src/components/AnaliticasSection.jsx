@@ -45,7 +45,7 @@ const TradingCard = ({ title, value, label, icon: Icon, color = "#0078D4" }) => 
             <div className="p-3 bg-white/[0.02] border border-white/5 rounded-sm text-white/40 group-hover:text-white transition-all">
                 <Icon size={16} />
             </div>
-            <span className="text-[10px] font-black text-white/10 uppercase tracking-[0.3em] font-mono group-hover:text-white/20">Active_Link</span>
+            <span className="text-[10px] font-black text-white/10 uppercase tracking-[0.3em] font-mono group-hover:text-white/20">Dato Oficial</span>
         </div>
         <div className="flex flex-col">
             <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.4em] mb-1">{title}</span>
@@ -88,7 +88,7 @@ export default function AnaliticasSection() {
                 </div>
             </div>
             <div className="flex flex-col items-center gap-2">
-                <span className="text-[11px] font-black text-white tracking-[1.5em] animate-pulse">CARGANDO_NÚCLEO</span>
+                <span className="text-[11px] font-black text-white tracking-[1.5em] animate-pulse">CARGANDO ESTADÍSTICAS</span>
                 <div className="w-48 h-1 bg-white/5 rounded-full overflow-hidden">
                     <motion.div
                         initial={{ x: "-100%" }}
@@ -115,39 +115,39 @@ export default function AnaliticasSection() {
                         <div>
                             <div className="flex items-center gap-3 mb-1">
                                 <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-[8px] font-black tracking-widest rounded-sm border border-emerald-500/30">EN LÍNEA</span>
-                                <span className="text-white/20 text-[9px] font-mono tracking-widest italic">ROOT_SYS_v2.0</span>
+                                <span className="text-white/20 text-[9px] font-mono tracking-widest italic">SISTEMA_DATO_OFICIAL</span>
                             </div>
-                            <h2 className="text-5xl font-black text-white italic tracking-tighter uppercase leading-none">WARROOM <span className="text-[#0078D4]">ANALYTICS</span></h2>
+                            <h2 className="text-5xl font-black text-white italic tracking-tighter uppercase leading-none">CENTRO DE <span className="text-[#0078D4]">ANALÍTICAS</span></h2>
                         </div>
                     </div>
                     <div className="text-right hidden md:block">
-                        <p className="text-[9px] font-black text-white/20 tracking-[0.5em] uppercase mb-1">Status Actual del Mercado</p>
-                        <p className="text-xl font-black text-white font-oswald uppercase tracking-widest">SISTEMA_DENTADO_REAL</p>
+                        <p className="text-[9px] font-black text-white/20 tracking-[0.5em] uppercase mb-1">Resumen de la Temporada</p>
+                        <p className="text-xl font-black text-white font-oswald uppercase tracking-widest">DATOS EN TIEMPO REAL</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
-                    <TradingCard title="Volumen de Juego" value={stats?.total_matches || 0} label="PARTIDOS FINALIZADOS" icon={Database} />
-                    <TradingCard title="Índice de Anotación" value={stats?.total_punto_avg?.toFixed(1) || "0.0"} label="PUNTOS POR EQUIPO" icon={TrendingUp} color="#00BCF2" />
-                    <TradingCard title="Tasa de Bloqueos" value={stats?.total_tapones || 0} label="DEFENSA GLOBAL" icon={ShieldCheck} color="#107C10" />
-                    <TradingCard title="Ratio Eficiencia" value={stats?.total_eficiencia_avg?.toFixed(1) || "0.0"} label="PERFORMANCE INDEX" icon={Zap} color="#FFD700" />
+                    <TradingCard title="Partidos Jugados" value={stats?.total_matches || 0} label="HISTORIAL TOTAL" icon={Database} />
+                    <TradingCard title="Promedio de Puntos" value={stats?.total_punto_avg?.toFixed(1) || "0.0"} label="PUNTOS POR EQUIPO" icon={TrendingUp} color="#00BCF2" />
+                    <TradingCard title="Tapones Totales" value={stats?.total_tapones || 0} label="DEFENSA GLOBAL" icon={ShieldCheck} color="#107C10" />
+                    <TradingCard title="Eficiencia Media" value={stats?.total_eficiencia_avg?.toFixed(1) || "0.0"} label="ÍNDICE DE RENDIMIENTO" icon={Zap} color="#FFD700" />
                 </div>
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 overflow-hidden flex gap-8 px-12 pb-12 relative z-10">
+            <div className="flex-1 min-h-0 overflow-hidden flex gap-8 px-12 pb-12 relative z-10">
 
-                {/* Left Side: Winning Momentum Index */}
-                <div className="flex-1 bg-[#0b0b0b] border border-white/5 rounded-sm p-8 relative flex flex-col">
+                {/* Left Side: Mejores Rachas */}
+                <div className="flex-1 min-h-0 bg-[#0b0b0b] border border-white/5 rounded-sm p-8 relative flex flex-col">
                     <HUDCorner pos="top-left" />
                     <HUDCorner pos="bottom-right" />
 
                     <div className="flex items-center justify-between mb-10 border-b border-white/5 pb-6">
                         <div className="flex items-center gap-4">
                             <div className="w-2 h-8 bg-[#0078D4] shadow-[0_0_15px_#0078D4]" />
-                            <h3 className="text-sm font-black text-white uppercase tracking-[0.4em]">Winning Momentum Index</h3>
+                            <h3 className="text-sm font-black text-white uppercase tracking-[0.4em]">Mejores Rachas de Victorias</h3>
                         </div>
-                        <span className="text-[10px] font-mono text-white/20">STREAK_VAL_DESC</span>
+                        <span className="text-[10px] font-mono text-white/20">DATOS ACTUALIZADOS</span>
                     </div>
 
                     <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar space-y-8">
@@ -177,10 +177,10 @@ export default function AnaliticasSection() {
                                             <div className="flex items-center gap-2">
                                                 {isHot && <ArrowUpRight size={14} className="text-emerald-400 animate-bounce" />}
                                                 <span className={`text-lg font-black font-oswald ${isHot ? 'text-emerald-400' : 'text-white'}`}>
-                                                    W{item.streak}
+                                                    {item.streak} Victorias
                                                 </span>
                                             </div>
-                                            <span className="text-[8px] font-black text-white/10 uppercase tracking-tighter">Current_Streak</span>
+                                            <span className="text-[8px] font-black text-white/10 uppercase tracking-tighter">Racha Actual</span>
                                         </div>
                                     </div>
                                     <MomentumBar value={item.streak} max={8} color={barColor} />
@@ -196,8 +196,8 @@ export default function AnaliticasSection() {
                 </div>
 
                 {/* Right Side: Market Stats / Distribution */}
-                <div className="w-[380px] space-y-6 hidden xl:block">
-                    <div className="bg-[#0b0b0b] border border-white/5 rounded-sm p-8 relative">
+                <div className="w-[380px] flex flex-col gap-6 hidden xl:flex min-h-0 overflow-y-auto custom-scrollbar pr-2">
+                    <div className="bg-[#0b0b0b] border border-white/5 rounded-sm p-8 relative flex-shrink-0">
                         <HUDCorner pos="top-right" />
                         <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.5em] mb-8">Puntos por Zona</h4>
                         <div className="space-y-10">
@@ -221,20 +221,6 @@ export default function AnaliticasSection() {
                                     </div>
                                 </div>
                             ))}
-                        </div>
-                    </div>
-
-                    <div className="bg-[#0b0b0b] border border-white/5 rounded-sm p-8 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-[#0078D4]/10 blur-[50px] -mr-12 -mt-12" />
-                        <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.5em] mb-4">Aviso de Sistema</h4>
-                        <p className="text-[11px] text-white/70 italic leading-relaxed font-medium">
-                            "El análisis de racha se basa en los últimos encuentros oficiales. El Winning Momentum refleja la probabilidad de dominancia en el siguiente periodo de juego."
-                        </p>
-                        <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
-                            <span className="text-[8px] font-mono text-white/10 uppercase">Security_Scan: Done</span>
-                            <div className="flex gap-1">
-                                {[1, 2, 3].map(i => <div key={i} className="w-1 h-1 bg-[#0078D4] rounded-full animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />)}
-                            </div>
                         </div>
                     </div>
                 </div>

@@ -33,6 +33,10 @@ class PartidoRead(BaseModel):
     estado: EstadoPartido
     pts_local: int
     pts_visitante: int
+    faltas_equipo_local: int
+    faltas_equipo_vis: int
+    timeouts_local: int
+    timeouts_vis: int
     tiempo_restante: int
     reloj_activo: bool
     local_id: int

@@ -72,7 +72,14 @@ export function usePartido(partidoId, { pollInterval = 10000, withParciales = fa
             ])
 
             updateState({
-                partido: resP.data,
+                partido: {
+                    ...resP.data,
+                    // Si el reloj está activo y NO ha cambiado el cuarto, preservamos el tiempo local
+                    // Pero si el cuarto cambió, aceptamos el nuevo tiempo (reset) del servidor
+                    tiempo_restante: (state.partido?.reloj_activo && resP.data.reloj_activo && state.partido?.cuarto_actual === resP.data.cuarto_actual)
+                        ? state.partido.tiempo_restante
+                        : resP.data.tiempo_restante
+                },
                 stats: resS.data,
                 parciales: resParc.data
             })
@@ -103,11 +110,30 @@ export function usePartido(partidoId, { pollInterval = 10000, withParciales = fa
 
         cargarTodo(partidoId)
 
-        const wsHandler = () => refreshData()
+        const wsHandler = (data) => {
+            if (data.event === 'clock_tick') {
+                // Actualizar solo el reloj para máxima fluidez sin sobrecargar el servidor
+                setState(prev => {
+                    if (!prev.partido) return prev
+                    return {
+                        ...prev,
+                        partido: {
+                            ...prev.partido,
+                            tiempo_restante: data.tiempo_restante,
+                            reloj_activo: data.reloj_activo
+                        }
+                    }
+                })
+            } else {
+                // Para eventos de anotación u otros cambios de estado, refrescar todo
+                refreshData()
+            }
+        }
         fibaSocket.conectar(parseInt(partidoId))
         fibaSocket.onUpdate(wsHandler)
 
         const pollTimer = setInterval(() => {
+            // Bajamos la frecuencia del poll masivo si el socket está activo
             refreshData()
             refreshJugadores()
         }, pollInterval)

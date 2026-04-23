@@ -77,12 +77,12 @@ export default function PrintableActaPage() {
 
     if (loading) return (
         <div style={{ padding: 40, fontFamily: 'monospace', color: '#fff', backgroundColor: '#000', height: '100vh' }}>
-            SISTEMA: Cargando datos de planilla...
+            Cargando planilla oficial...
         </div>
     )
     if (!partido || !resumen) return (
         <div style={{ padding: 40, color: '#ff4444', backgroundColor: '#000', height: '100vh', fontFamily: 'monospace' }}>
-            ERROR_CRITICO: No se pudieron recuperar los activos del partido {partidoId}.
+            Error: No se pudo encontrar el partido {partidoId}.
         </div>
     )
 

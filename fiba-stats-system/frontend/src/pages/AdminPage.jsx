@@ -78,32 +78,32 @@ export default function AdminPage() {
   }
 
   const handleBorrarEquipo = (id) => setModal({
-    show: true, title: 'Destruir Nodo de Datos', msg: 'Esto eliminará todos los registros de jugadores y el historial de partidos. ¿Continuar?',
-    onConfirm: async () => { try { await eliminarEquipo(id); cargarEquipos(); flash('Nodo purgado.') } catch (e) { flash('Fallo en la purga.') } }
+    show: true, title: 'Eliminar Equipo', msg: 'Esto eliminará todos los registros de jugadores y el historial de partidos. ¿Continuar?',
+    onConfirm: async () => { try { await eliminarEquipo(id); cargarEquipos(); flash('Equipo eliminado.') } catch (e) { flash('Error al eliminar.') } }
   })
 
   const handleCrearJugador = async (e) => {
     e.preventDefault()
     if (!equipoSel || !fJ.nombre || !fJ.numero) return flash('Selección/Entrada requerida.')
-    try { await crearJugador({ ...fJ, equipo_id: equipoSel.id }); setFJ({ nombre: '', numero: '', posicion: 'PG', es_titular: false }); cargarJugadores(equipoSel.id); flash('Activo registrado.') }
-    catch (e) { flash('Error de registro de activo.') }
+    try { await crearJugador({ ...fJ, equipo_id: equipoSel.id }); setFJ({ nombre: '', numero: '', posicion: 'PG', es_titular: false }); cargarJugadores(equipoSel.id); flash('Jugador registrado.') }
+    catch (e) { flash('Error al registrar jugador.') }
   }
 
   const handleBorrarJugador = (jid) => setModal({
-    show: true, title: 'Descomisionar Activo', msg: '¿Eliminar permanentemente al jugador de la nómina?',
-    onConfirm: async () => { try { await eliminarJugador(jid); cargarJugadores(equipoSel.id); flash('Activo descomisionado.') } catch (e) { flash('Error.') } }
+    show: true, title: 'Eliminar Jugador', msg: '¿Eliminar permanentemente al jugador de la nómina?',
+    onConfirm: async () => { try { await eliminarJugador(jid); cargarJugadores(equipoSel.id); flash('Jugador eliminado.') } catch (e) { flash('Error.') } }
   })
 
   const handleCrearPartido = async (e) => {
     e.preventDefault()
-    if (!fP.local_id || !fP.visitante_id) return flash('Faltan nodos de red.')
-    try { await crearPartido(fP); setFP({ local_id: '', visitante_id: '', competicion: '', cancha: '', arbitro_principal: '', arbitro_asistente1: '', arbitro_asistente2: '' }); cargarPartidos(); flash('Servicio inicializado.') }
-    catch (e) { flash('Error de enlace.') }
+    if (!fP.local_id || !fP.visitante_id) return flash('Selecciona ambos equipos.')
+    try { await crearPartido(fP); setFP({ local_id: '', visitante_id: '', competicion: '', cancha: '', arbitro_principal: '', arbitro_asistente1: '', arbitro_asistente2: '' }); cargarPartidos(); flash('Partido creado.') }
+    catch (e) { flash('Error al crear partido.') }
   }
 
   const handleBorrarPartido = (pid) => setModal({
-    show: true, title: 'Terminar Sesión', msg: '¿Borrar registro de partido? Esta acción es irreversible.',
-    onConfirm: async () => { try { await eliminarPartido(pid); cargarPartidos(); flash('Sesión terminada.') } catch (e) { flash('Error.') } }
+    show: true, title: 'Eliminar Partido', msg: '¿Borrar registro de partido? Esta acción es irreversible.',
+    onConfirm: async () => { try { await eliminarPartido(pid); cargarPartidos(); flash('Partido eliminado.') } catch (e) { flash('Error.') } }
   })
 
   // print handle removed
@@ -126,16 +126,16 @@ export default function AdminPage() {
         {/* Navigation Tabs */}
         <nav className="flex items-center gap-2">
           <button onClick={() => setVista('equipos')} className={`nav-item ${vista === 'equipos' ? 'active' : ''}`}>
-            <Layout size={14} /> Equipos y Nóminas
+            <Layout size={14} /> Equipos y Jugadores
           </button>
           <button onClick={() => setVista('partidos')} className={`nav-item ${vista === 'partidos' ? 'active' : ''}`}>
-            <Terminal size={14} /> Sockets en Vivo
+            <Terminal size={14} /> Partidos en Vivo
           </button>
           <button onClick={() => setVista('analiticas')} className={`nav-item ${vista === 'analiticas' ? 'active' : ''}`}>
             <Activity size={14} /> Centro de Analíticas
           </button>
           <button onClick={() => setVista('reportes')} className={`nav-item ${vista === 'reportes' ? 'active' : ''}`}>
-            <FileText size={14} /> Historial y PDF
+            <FileText size={14} /> Reportes y PDF
           </button>
         </nav>
 
@@ -189,21 +189,21 @@ export default function AdminPage() {
               <motion.div key="eq" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-12 h-full">
                 {/* Panel de Propiedades Lateral (Scroll Independiente) */}
                 <div className="col-span-12 lg:col-span-4 xl:col-span-3 border-r border-white/5 p-6 space-y-6 bg-white/[0.01] overflow-y-auto custom-scrollbar">
-                  <ToolHeader title="Controlador de Activos" icon={Layout} />
+                  <ToolHeader title="Gestión de Datos" icon={Layout} />
 
                   <form onSubmit={handleCrearEquipo} className="grid-panel bg-[#121212]">
-                    <div className="grid-panel-header italic border-b-[#0078D4]/20">REGISTRAR_ENTIDAD</div>
+                    <div className="grid-panel-header italic border-b-[#0078D4]/20">REGISTRAR EQUIPO</div>
                     <div className="divide-y divide-white/[0.03]">
-                      <PropertyField label="Designación Formal">
-                        <input className="control-input w-full" value={fE.nombre} onChange={e => setFE({ ...fE, nombre: e.target.value })} placeholder="Nombre de la Institución..." />
+                      <PropertyField label="Nombre del Equipo">
+                        <input className="control-input w-full" value={fE.nombre} onChange={e => setFE({ ...fE, nombre: e.target.value })} placeholder="Nombre del Club..." />
                       </PropertyField>
-                      <PropertyField label="ID Técnico / Tag">
-                        <input className="control-input w-full font-mono text-center" maxLength={3} value={fE.abrev} onChange={e => setFE({ ...fE, abrev: e.target.value })} placeholder="000" />
+                      <PropertyField label="Siglas / Abreviatura">
+                        <input className="control-input w-full font-mono text-center" maxLength={3} value={fE.abrev} onChange={e => setFE({ ...fE, abrev: e.target.value })} placeholder="Ej: LNB" />
                       </PropertyField>
-                      <PropertyField label="Entrenador al Mando">
-                        <input className="control-input w-full" value={fE.entrenador} onChange={e => setFE({ ...fE, entrenador: e.target.value })} placeholder="Nombre Oficial..." />
+                      <PropertyField label="Director Técnico">
+                        <input className="control-input w-full" value={fE.entrenador} onChange={e => setFE({ ...fE, entrenador: e.target.value })} placeholder="Nombre del Entrenador..." />
                       </PropertyField>
-                      <PropertyField label="Identidad Visual (Hex)">
+                      <PropertyField label="Color del Equipo">
                         <div className="flex items-center gap-4">
                           <input type="color" className="w-12 h-10 bg-transparent border-0 cursor-pointer rounded-sm" value={fE.color_principal} onChange={e => setFE({ ...fE, color_principal: e.target.value })} />
                           <span className="text-[11px] font-mono text-[#444] font-black">{fE.color_principal}</span>
@@ -211,39 +211,39 @@ export default function AdminPage() {
                       </PropertyField>
                     </div>
                     <div className="p-4 bg-white/[0.03] border-t border-white/5">
-                      <button type="submit" className="control-button control-button-accent w-full h-11 text-[11px] font-black tracking-[0.2em]">INICIALIZAR_NODO</button>
+                      <button type="submit" className="control-button control-button-accent w-full h-11 text-[11px] font-black tracking-[0.2em]">GUARDAR EQUIPO</button>
                     </div>
                   </form>
 
                   {equipoSel && (
                     <motion.form initial={{ scale: 0.98, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onSubmit={handleCrearJugador} className="grid-panel bg-[#121212] border-t-2 border-t-[#0078D4]">
                       <div className="grid-panel-header bg-[#0078D4]/10 flex justify-between gap-4">
-                        <span className="text-[#0078D4] truncate text-[10px]">CARGAR_ACTIVO: {equipoSel.abrev}</span>
+                        <span className="text-[#0078D4] truncate text-[10px]">AÑADIR JUGADOR: {equipoSel.nombre}</span>
                         <button onClick={() => setEquipoSel(null)} type="button" className="flex-shrink-0"><X size={14} className="hover:text-white transition-colors" /></button>
                       </div>
                       <div className="divide-y divide-white/[0.03]">
-                        <PropertyField label="Nombre Completo del Activo">
+                        <PropertyField label="Nombre del Jugador">
                           <input className="control-input w-full" value={fJ.nombre} onChange={e => setFJ({ ...fJ, nombre: e.target.value })} />
                         </PropertyField>
                         <div className="grid grid-cols-2">
                           <div className="border-r border-white/[0.03]">
-                            <PropertyField label="Nodo #">
+                            <PropertyField label="Número #">
                               <input className="control-input w-full text-center" type="number" value={fJ.numero} onChange={e => setFJ({ ...fJ, numero: e.target.value })} />
                             </PropertyField>
                           </div>
-                          <PropertyField label="Clase">
+                          <PropertyField label="Posición">
                             <select className="control-input w-full" value={fJ.posicion} onChange={e => setFJ({ ...fJ, posicion: e.target.value })}>
                               {['PG', 'SG', 'SF', 'PF', 'C'].map(p => <option key={p} value={p}>{p}</option>)}
                             </select>
                           </PropertyField>
                         </div>
                         <div className="flex items-center justify-between p-4 px-6 bg-white/[0.02]">
-                          <span className="text-[10px] font-black text-[#555] uppercase tracking-[0.3em]">UNIDAD_PRIMARIA</span>
+                          <span className="text-[10px] font-black text-[#555] uppercase tracking-[0.3em]">¿ES TITULAR?</span>
                           <input type="checkbox" checked={fJ.es_titular} onChange={e => setFJ({ ...fJ, es_titular: e.target.checked })} className="w-4 h-4 accent-[#0078D4]" />
                         </div>
                       </div>
                       <div className="p-4 bg-white/[0.03]">
-                        <button type="submit" className="control-button control-button-accent w-full h-11 text-[11px] font-black tracking-widest shadow-[0_4px_20px_rgba(0,120,212,0.2)]">DESPLEGAR_UNIDAD</button>
+                        <button type="submit" className="control-button control-button-accent w-full h-11 text-[11px] font-black tracking-widest shadow-[0_4px_20px_rgba(0,120,212,0.2)]">GUARDAR JUGADOR</button>
                       </div>
                     </motion.form>
                   )}
@@ -254,15 +254,15 @@ export default function AdminPage() {
                   <div className="px-8 lg:px-12 pt-12 pb-8 flex-shrink-0">
                     <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between underline decoration-white/5 underline-offset-[20px] gap-8">
                       <div>
-                        <h2 className="text-4xl lg:text-5xl font-black italic tracking-tighter uppercase leading-none">Base de Datos <span className="text-[#0078D4]">de Entidades</span></h2>
-                        <p className="text-[11px] text-[#444] font-black tracking-[0.5em] uppercase mt-4">Registro Multi-Nodo / Aceleración de Hardware v2</p>
+                        <h2 className="text-4xl lg:text-5xl font-black italic tracking-tighter uppercase leading-none">Base de Datos <span className="text-[#0078D4]">de Equipos</span></h2>
+                        <p className="text-[11px] text-[#444] font-black tracking-[0.5em] uppercase mt-4">Gestión de Clubes y Jugadores Registrados</p>
                       </div>
                       <div className="flex items-center gap-4 mb-2">
                         <div className="flex flex-col items-end mr-6 whitespace-nowrap">
-                          <span className="text-[9px] font-black text-[#333] uppercase mb-1">Total de Activos</span>
+                          <span className="text-[9px] font-black text-[#333] uppercase mb-1">Total de Equipos</span>
                           <span className="text-3xl font-oswald font-black text-[#0078D4] leading-none">{equipos.length}</span>
                         </div>
-                        <button className="control-button h-10 px-6 opacity-40 hover:opacity-100 whitespace-nowrap"><Search size={14} /> ESCRUTAR_DATOS</button>
+                        <button className="control-button h-10 px-6 opacity-40 hover:opacity-100 whitespace-nowrap"><Search size={14} /> BUSCAR EQUIPO</button>
                       </div>
                     </div>
                   </div>
@@ -282,10 +282,10 @@ export default function AdminPage() {
                                 <div className="flex flex-col gap-1 overflow-hidden">
                                   <h4 className="text-[16px] font-black uppercase tracking-widest text-[#ccc] group-hover:text-white transition-colors">{eq.nombre}</h4>
                                   <div className="flex items-center gap-4">
-                                    <span className="text-[10px] font-bold text-[#444] uppercase tracking-[0.2em] font-mono whitespace-nowrap">NODO_{eq.id.toString(36).toUpperCase()}</span>
+                                    <span className="text-[10px] font-bold text-[#444] uppercase tracking-[0.2em] font-mono whitespace-nowrap">ID_{eq.id.toString(36).toUpperCase()}</span>
                                     <div className="flex items-center gap-1.5 bg-[#0078D4]/10 px-2 py-0.5 rounded-sm flex-shrink-0">
                                       <div className="w-1.5 h-1.5 rounded-full bg-[#0078D4] animate-pulse" />
-                                      <span className="text-[9px] font-black text-[#0078D4] uppercase">SYNC_OK</span>
+                                      <span className="text-[9px] font-black text-[#0078D4] uppercase">CONECTADO</span>
                                     </div>
                                   </div>
                                 </div>
@@ -294,14 +294,14 @@ export default function AdminPage() {
                               <div className={`flex items-center gap-4 transition-all ${equipoSel ? '' : 'opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0'}`}>
                                 {equipoSel ? (
                                   <button onClick={() => setEquipoSel(null)} className="control-button px-6 bg-white/5 border-white/10 hover:bg-white/10 text-white font-black italic tracking-widest text-[10px]">
-                                    <ChevronRight size={14} className="rotate-180" /> REGRESAR_AL_LISTADO
+                                    <ChevronRight size={14} className="rotate-180" /> VOLVER AL LISTADO
                                   </button>
                                 ) : (
                                   <>
-                                    <button onClick={() => { setEquipoSel(eq); cargarJugadores(eq.id) }} className="control-button w-14 h-14 p-0 border-[#0078D4]/30 hover:bg-[#0078D4] shadow-lg" title="Ver Nómina de Jugadores">
+                                    <button onClick={() => { setEquipoSel(eq); cargarJugadores(eq.id) }} className="control-button w-14 h-14 p-0 border-[#0078D4]/30 hover:bg-[#0078D4] shadow-lg" title="Ver Plantilla de Jugadores">
                                       <Users size={24} />
                                     </button>
-                                    <button onClick={() => handleBorrarEquipo(eq.id)} className="control-button w-14 h-14 p-0 border-red-500/20 hover:border-red-500/50 hover:bg-red-500/20 text-red-500 shadow-lg" title="Eliminar Registro de Equipo">
+                                    <button onClick={() => handleBorrarEquipo(eq.id)} className="control-button w-14 h-14 p-0 border-red-500/20 hover:border-red-500/50 hover:bg-red-500/20 text-red-500 shadow-lg" title="Eliminar Equipo">
                                       <Trash2 size={24} />
                                     </button>
                                   </>
@@ -314,10 +314,10 @@ export default function AdminPage() {
                                 <table className="w-full text-left min-w-[600px]">
                                   <thead>
                                     <tr className="text-[11px] font-black text-[#444] uppercase tracking-[0.4em] border-b border-white/5">
-                                      <th className="pb-6">TAG</th>
-                                      <th className="pb-6">IDENT_ACTIVO</th>
+                                      <th className="pb-6">NUM</th>
+                                      <th className="pb-6">NOMBRE DEL JUGADOR</th>
                                       <th className="pb-6 text-center">POS</th>
-                                      <th className="pb-6 text-center">ESTADO_UNIDAD</th>
+                                      <th className="pb-6 text-center">ESTADO</th>
                                       <th className="pb-6 text-right">ACCIÓN</th>
                                     </tr>
                                   </thead>
@@ -329,8 +329,8 @@ export default function AdminPage() {
                                         <td className="py-4 text-center text-[#555] font-mono">{j.posicion}</td>
                                         <td className="py-4 text-center">
                                           {j.es_titular ?
-                                            <span className="text-[10px] font-black text-white bg-[#0078D4]/20 px-3 py-1 rounded-sm border border-[#0078D4]/40 uppercase italic">Op_Campo</span> :
-                                            <span className="text-[10px] font-black text-[#333] uppercase">Standby</span>
+                                            <span className="text-[10px] font-black text-white bg-[#0078D4]/20 px-3 py-1 rounded-sm border border-[#0078D4]/40 uppercase italic">Titular</span> :
+                                            <span className="text-[10px] font-black text-[#333] uppercase">Banca</span>
                                           }
                                         </td>
                                         <td className="py-4 text-right"><button onClick={() => handleBorrarJugador(j.id)} className="text-red-500/20 hover:text-red-500 transition-colors p-2"><Trash2 size={18} /></button></td>
@@ -353,13 +353,13 @@ export default function AdminPage() {
             {vista === 'partidos' && (
               <motion.div key="pt" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="grid grid-cols-12 h-full">
                 <div className="col-span-12 lg:col-span-4 border-r border-white/5 p-8 bg-white/[0.005] overflow-y-auto custom-scrollbar">
-                  <ToolHeader title="Inicializador de Hilos" icon={Terminal} />
+                  <ToolHeader title="Nuevo Partido" icon={Terminal} />
                   <form onSubmit={handleCrearPartido} className="grid-panel mt-12 bg-[#121212] overflow-visible">
-                    <div className="grid-panel-header italic tracking-[0.2em] border-b-[#0078D4]/40">ESTABLECER_ENLACE_SOCKET</div>
+                    <div className="grid-panel-header italic tracking-[0.2em] border-b-[#0078D4]/40">CONFIGURAR PARTIDO</div>
                     <div className="p-8 space-y-8">
-                      <PropertyField label="Nodo Primario (Local)">
+                      <PropertyField label="Equipo Local">
                         <select className="control-input w-full uppercase font-black tracking-widest" value={fP.local_id} onChange={e => setFP({ ...fP, local_id: e.target.value })}>
-                          <option value="">Entidad Local Objetivo...</option>
+                          <option value="">Seleccionar Equipo Local...</option>
                           {equipos.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
                         </select>
                       </PropertyField>
@@ -368,20 +368,20 @@ export default function AdminPage() {
                           <Activity size={16} className="text-white animate-pulse" />
                         </div>
                       </div>
-                      <PropertyField label="Nodo Secundario (Visitante)">
+                      <PropertyField label="Equipo Visitante">
                         <select className="control-input w-full uppercase font-black tracking-widest" value={fP.visitante_id} onChange={e => setFP({ ...fP, visitante_id: e.target.value })}>
-                          <option value="">Entidad Visitante Objetivo...</option>
+                          <option value="">Seleccionar Equipo Visitante...</option>
                           {equipos.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
                         </select>
                       </PropertyField>
                       <div className="grid grid-cols-1 gap-4 pt-4 border-t border-white/5">
-                        <PropertyField label="Resolución de Competición">
-                          <input className="control-input w-full" value={fP.competicion} onChange={e => setFP({ ...fP, competicion: e.target.value })} placeholder="Ej: Semifinal LNB..." />
+                        <PropertyField label="Torneo / Competencia">
+                          <input className="control-input w-full" value={fP.competicion} onChange={e => setFP({ ...fP, competicion: e.target.value })} placeholder="Ej: Torneo Apertura..." />
                         </PropertyField>
                       </div>
                       <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
-                        <PropertyField label="Instancia de Servidor">
-                          <input className="control-input w-full" value={fP.cancha} onChange={e => setFP({ ...fP, cancha: e.target.value })} placeholder="Estadio Principal..." />
+                        <PropertyField label="Cancha / Estadio">
+                          <input className="control-input w-full" value={fP.cancha} onChange={e => setFP({ ...fP, cancha: e.target.value })} placeholder="Nombre del Estadio..." />
                         </PropertyField>
                         <PropertyField label="Árbitro Principal">
                           <input className="control-input w-full" value={fP.arbitro_principal} onChange={e => setFP({ ...fP, arbitro_principal: e.target.value })} placeholder="Árbitro Principal..." />
@@ -395,15 +395,15 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div className="p-6 bg-white/[0.03]">
-                      <button type="submit" className="control-button control-button-accent w-full h-16 text-[12px] font-black uppercase tracking-[0.4em] shadow-[0_10px_40px_rgba(0,120,212,0.3)]"><Save size={18} /> INICIALIZAR_HANDSHAKE</button>
+                      <button type="submit" className="control-button control-button-accent w-full h-16 text-[12px] font-black uppercase tracking-[0.2em] shadow-[0_10px_40px_rgba(0,120,212,0.3)]"><Save size={18} /> CREAR PARTIDOm</button>
                     </div>
                   </form>
                 </div>
 
                 <div className="col-span-12 lg:col-span-8 flex flex-col h-full overflow-hidden">
                   <div className="p-16 pb-8 flex-shrink-0">
-                    <h2 className="text-5xl font-black italic tracking-tighter uppercase leading-none">Archivos <span className="text-[#0078D4]">de Socket</span></h2>
-                    <p className="text-[11px] text-[#444] font-black tracking-[0.5em] uppercase mt-6">Buffers Activos / Persistencia Histórica de Datos</p>
+                    <h2 className="text-5xl font-black italic tracking-tighter uppercase leading-none">Historial <span className="text-[#0078D4]">de Partidos</span></h2>
+                    <p className="text-[11px] text-[#444] font-black tracking-[0.5em] uppercase mt-6">Partidos Registrados en el Sistema</p>
                   </div>
 
                   <div className="flex-1 overflow-y-auto custom-scrollbar px-16 pb-16">
@@ -419,7 +419,7 @@ export default function AdminPage() {
                                 <span className={`text-[8px] font-black px-3 py-1 border rounded-sm tracking-[0.2em] uppercase
                                   ${p.estado === 'en_juego' ? 'bg-[#0078D4]/10 border-[#0078D4]/40 text-[#0078D4] animate-pulse' : 'bg-[#1a1a1a] border-white/5 text-[#666]'}
                                 `}>
-                                  {p.estado === 'en_juego' ? '● PROTOCOLO_VIVO' : 'ESTADO_ARCHIVADO'}
+                                  {p.estado === 'en_juego' ? '● EN VIVO' : 'FINALIZADO'}
                                 </span>
                                 <span className="text-[9px] font-mono text-[#333] tracking-widest uppercase">ID: 0x{p.id.toString(16).toUpperCase()}</span>
                               </div>
@@ -430,11 +430,11 @@ export default function AdminPage() {
                                 </h4>
                                 <div className="flex items-center gap-8">
                                   <div className="flex flex-col">
-                                    <span className="text-[7px] font-black text-[#222] uppercase mb-0.5">STATION_NODE</span>
-                                    <span className="text-[10px] font-bold text-[#555] uppercase tracking-wider">{p.cancha || 'ARENA_DEFAULT'}</span>
+                                    <span className="text-[7px] font-black text-[#222] uppercase mb-0.5">ESTADIO</span>
+                                    <span className="text-[10px] font-bold text-[#555] uppercase tracking-wider">{p.cancha || 'PRINCIPAL'}</span>
                                   </div>
                                   <div className="flex flex-col">
-                                    <span className="text-[7px] font-black text-[#222] uppercase mb-0.5">DATE_REF</span>
+                                    <span className="text-[7px] font-black text-[#222] uppercase mb-0.5">FECHA</span>
                                     <span className="text-[10px] font-mono text-[#555] uppercase">{new Date(p.fecha).toLocaleDateString()}</span>
                                   </div>
                                 </div>
@@ -506,25 +506,25 @@ export default function AdminPage() {
           <div className="flex items-center gap-4 flex-shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]" />
-              <span className="text-[10px] uppercase font-black tracking-widest whitespace-nowrap">KERNEL_SISTEMA: LISTO</span>
+              <span className="text-[10px] uppercase font-black tracking-widest whitespace-nowrap">SISTEMA: LISTO</span>
             </div>
             <span className="text-white/10">|</span>
             <div className="flex items-center gap-2 text-[#777]">
-              <span className="text-[10px] uppercase font-black tracking-widest whitespace-nowrap">CAPA_CIFRADO: TRUE</span>
+              <span className="text-[10px] uppercase font-black tracking-widest whitespace-nowrap">CIFRADO: ACTIVO</span>
             </div>
           </div>
 
           <div className="ml-auto flex items-center gap-10 flex-shrink-0">
             <div className="hidden lg:flex items-center gap-3 text-white/40">
               <Terminal size={12} />
-              <span className="font-mono text-[10px]">FREQ_RE_LOOP: 60Hz</span>
+              <span className="font-mono text-[10px]">FREQ: 60Hz</span>
             </div>
             <div className="flex items-center gap-3 text-white/40">
               <Clock size={12} />
-              <span className="font-mono text-[10px] uppercase">{new Date().toLocaleTimeString()} UTC</span>
+              <span className="font-mono text-[10px] uppercase">{new Date().toLocaleTimeString()}</span>
             </div>
             <div className="h-4 w-px bg-white/10" />
-            <span className="text-[#0078D4] font-black italic tracking-widest text-[10px] whitespace-nowrap">MOTOR_FIBA_CORE_v3.0.4</span>
+            <span className="text-[#0078D4] font-black italic tracking-widest text-[10px] whitespace-nowrap">FIBA STATS SYSTEM v3.0.4</span>
           </div>
         </footer>
       </main>
