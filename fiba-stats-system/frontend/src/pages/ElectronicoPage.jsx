@@ -133,9 +133,15 @@ export default function ElectronicoPage() {
         flash(`PUNTOS MITAD C${q} REGISTRADOS`, '#0078D4')
       } else if (!p2) {
         // Guardar intervalo 2 y avanzar
-        const msgConfirm = q < 4
-          ? `¿FINALIZAR CUARTO ${q} Y AVANZAR AL SIGUIENTE PERIODO?`
-          : `¿FINALIZAR ÚLTIMO CUARTO Y CERRAR EL MARCADOR?`
+        const isTie = partido.pts_local === partido.pts_visitante;
+        let msgConfirm;
+        if (q < 4) {
+          msgConfirm = `¿FINALIZAR CUARTO ${q} Y AVANZAR AL SIGUIENTE PERIODO?`;
+        } else if (isTie) {
+          msgConfirm = `¡EMPATE! ¿INICIAR TIEMPO EXTRA (PRÓRROGA)?`;
+        } else {
+          msgConfirm = `¿FINALIZAR PARTIDO Y CERRAR EL MARCADOR DEFINITIVAMENTE?`;
+        }
 
         if (!confirm(msgConfirm)) return
 
@@ -147,8 +153,13 @@ export default function ElectronicoPage() {
           await avanzarCuarto(partidoId)
           await handleSetReloj(600) // 10:00
           flash(`CUARTO ${q} CERRADO - INICIANDO C${q + 1}`, '#2ea043')
+        } else if (isTie) {
+          await avanzarCuarto(partidoId)
+          await handleSetReloj(300) // 5:00
+          flash(`EMPATE - INICIANDO TIEMPO EXTRA`, '#fbbf24')
         } else {
-          flash(`JUEGO COMPLETADO - LISTO PARA FINALIZAR`, '#fbbf24')
+          await finalizarPartido(partidoId)
+          flash(`PARTIDO FINALIZADO DEFINITIVAMENTE`, '#f43f5e')
         }
       }
       refreshPartido()
