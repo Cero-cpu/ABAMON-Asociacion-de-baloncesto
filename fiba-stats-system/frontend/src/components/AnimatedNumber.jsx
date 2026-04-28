@@ -10,19 +10,22 @@ import { motion, AnimatePresence } from 'framer-motion'
  */
 export default function AnimatedNumber({ value, className = "" }) {
     const [displayValue, setDisplayValue] = useState(value);
-    const [flash, setFlash] = useState(null); // 'up', 'down', or null
+    const [flash, setFlash] = useState(null); 
+    const lastValue = useRef(value);
 
     useEffect(() => {
-        if (value !== displayValue) {
-            const dir = value > displayValue ? 'up' : 'down';
+        if (value !== lastValue.current) {
+            const dir = value > lastValue.current ? 'up' : 'down';
             setFlash(dir);
             setDisplayValue(value);
+            lastValue.current = value;
 
-            // Apagar el flash después de la animación
-            const timer = setTimeout(() => setFlash(null), 800);
+            const timer = setTimeout(() => {
+                setFlash(null);
+            }, 600); // Reducido de 800 a 600 para mayor respuesta
             return () => clearTimeout(timer);
         }
-    }, [value, displayValue]);
+    }, [value]);
 
     return (
         <div className={`relative inline-flex flex-col items-center overflow-visible h-[1.12em] ${className}`}>
@@ -30,49 +33,46 @@ export default function AnimatedNumber({ value, className = "" }) {
                 <motion.span
                     key={value}
                     initial={{
-                        y: flash === 'up' ? '50%' : '-50%',
+                        y: flash === 'up' ? 10 : -10,
                         opacity: 0,
-                        scale: 1.5,
-                        filter: 'blur(4px)'
+                        scale: 1.2
                     }}
                     animate={{
                         y: 0,
                         opacity: 1,
                         scale: 1,
-                        filter: 'blur(0px)',
-                        color: flash === 'up' ? '#10b981' : flash === 'down' ? '#ef4444' : undefined,
-                        textShadow: flash ? `0 0 20px ${flash === 'up' ? '#10b981' : '#ef4444'}` : 'none'
+                        color: flash === 'up' ? '#10b981' : flash === 'down' ? '#ef4444' : 'inherit',
                     }}
                     exit={{
-                        y: flash === 'up' ? '-50%' : '50%',
+                        y: flash === 'up' ? -10 : 10,
                         opacity: 0,
-                        scale: 0.8,
-                        filter: 'blur(2px)'
+                        scale: 0.9
                     }}
                     transition={{
                         type: 'spring',
-                        stiffness: 400,
-                        damping: 25,
+                        stiffness: 500,
+                        damping: 30,
                         mass: 0.5
                     }}
-                    className="inline-block relative z-10 font-bold"
+                    className="inline-block relative z-10 font-bold will-change-transform"
                 >
                     {value}
                 </motion.span>
             </AnimatePresence>
 
-            {/* Aura de impacto de cambio */}
+            {/* Aura de impacto simplificada */}
             <AnimatePresence>
                 {flash && (
                     <motion.div
-                        initial={{ scale: 0.5, opacity: 0 }}
-                        animate={{ scale: 2, opacity: 0 }}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1.5, opacity: 0 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.6 }}
-                        className={`absolute inset-0 rounded-full blur-xl pointer-events-none ${flash === 'up' ? 'bg-emerald-500/40' : 'bg-red-500/40'}`}
+                        transition={{ duration: 0.4 }}
+                        className={`absolute inset-0 rounded-full blur-md pointer-events-none ${flash === 'up' ? 'bg-emerald-500/20' : 'bg-red-500/20'}`}
                     />
                 )}
             </AnimatePresence>
         </div>
     );
 }
+

@@ -101,6 +101,7 @@
     display: flex;
     flex-direction: column;
     z-index: 50;
+    contain: layout style;
   }
 
   .region-main {
@@ -110,6 +111,7 @@
     flex-direction: column;
     overflow: hidden;
     position: relative;
+    contain: strict;
   }
 
   .region-toolbar {
@@ -120,6 +122,13 @@
     align-items: center;
     padding: 0 24px;
     z-index: 40;
+    contain: layout style;
+  }
+
+  /* Optimización para listas largas */
+  .custom-scrollbar {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 500px;
   }
 
   .pro-tool-window {

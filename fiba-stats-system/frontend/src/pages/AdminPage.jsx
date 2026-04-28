@@ -6,9 +6,9 @@ import {
   Download, Printer, Info, Clock, Terminal, CheckCircle2, AlertCircle, Activity, Box, Radio
 } from 'lucide-react'
 import {
-  getEquipos, crearEquipo, eliminarEquipo,
-  getJugadores, crearJugador, eliminarJugador,
-  getPartidos, crearPartido, eliminarPartido
+  getEquipos, crearEquipo, eliminarEquipo, actualizarEquipo,
+  getJugadores, crearJugador, eliminarJugador, actualizarJugador,
+  getPartidos, crearPartido, eliminarPartido, actualizarPartido
 } from '../services/api'
 import ConfirmModal from '../components/ConfirmModal'
 import ReportesSection from '../components/ReportesSection'
@@ -53,6 +53,11 @@ export default function AdminPage() {
   const [fJ, setFJ] = useState({ nombre: '', numero: '', posicion: 'PG', es_titular: false })
   const [fP, setFP] = useState({ local_id: '', visitante_id: '', competicion: '', cancha: '', arbitro_principal: '', arbitro_asistente1: '', arbitro_asistente2: '' })
 
+  // Estados de edición
+  const [editIdE, setEditIdE] = useState(null)
+  const [editIdJ, setEditIdJ] = useState(null)
+  const [editIdP, setEditIdP] = useState(null)
+
   // Estado para impresión eliminado
 
   const cargarEquipos = async () => { try { const r = await getEquipos(); setEquipos(r.data) } catch (err) { console.error(err) } }
@@ -73,8 +78,24 @@ export default function AdminPage() {
   const handleCrearEquipo = async (e) => {
     e.preventDefault()
     if (!fE.nombre || !fE.abrev) return flash('Faltan campos obligatorios.')
-    try { await crearEquipo(fE); setFE({ nombre: '', abrev: '', entrenador: '', color_principal: '#0078D4' }); cargarEquipos(); flash('Equipo registrado con éxito.') }
-    catch (e) { flash('Error al crear equipo.') }
+    try {
+      if (editIdE) {
+        await actualizarEquipo(editIdE, fE)
+        flash('Equipo actualizado con éxito.')
+      } else {
+        await crearEquipo(fE)
+        flash('Equipo registrado con éxito.')
+      }
+      setFE({ nombre: '', abrev: '', entrenador: '', color_principal: '#0078D4' })
+      setEditIdE(null)
+      cargarEquipos()
+    } catch (e) { flash('Error al procesar equipo.') }
+  }
+
+  const handleEditEquipo = (eq) => {
+    setFE({ nombre: eq.nombre, abrev: eq.abrev, entrenador: eq.entrenador, color_principal: eq.color_principal })
+    setEditIdE(eq.id)
+    setVista('equipos')
   }
 
   const handleBorrarEquipo = (id) => setModal({
@@ -85,8 +106,23 @@ export default function AdminPage() {
   const handleCrearJugador = async (e) => {
     e.preventDefault()
     if (!equipoSel || !fJ.nombre || !fJ.numero) return flash('Selección/Entrada requerida.')
-    try { await crearJugador({ ...fJ, equipo_id: equipoSel.id }); setFJ({ nombre: '', numero: '', posicion: 'PG', es_titular: false }); cargarJugadores(equipoSel.id); flash('Jugador registrado.') }
-    catch (e) { flash('Error al registrar jugador.') }
+    try {
+      if (editIdJ) {
+        await actualizarJugador(editIdJ, { ...fJ, equipo_id: equipoSel.id })
+        flash('Jugador actualizado.')
+      } else {
+        await crearJugador({ ...fJ, equipo_id: equipoSel.id })
+        flash('Jugador registrado.')
+      }
+      setFJ({ nombre: '', numero: '', posicion: 'PG', es_titular: false })
+      setEditIdJ(null)
+      cargarJugadores(equipoSel.id)
+    } catch (e) { flash('Error al procesar jugador.') }
+  }
+
+  const handleEditJugador = (j) => {
+    setFJ({ nombre: j.nombre, numero: j.numero, posicion: j.posicion, es_titular: !!j.es_titular })
+    setEditIdJ(j.id)
   }
 
   const handleBorrarJugador = (jid) => setModal({
@@ -97,8 +133,31 @@ export default function AdminPage() {
   const handleCrearPartido = async (e) => {
     e.preventDefault()
     if (!fP.local_id || !fP.visitante_id) return flash('Selecciona ambos equipos.')
-    try { await crearPartido(fP); setFP({ local_id: '', visitante_id: '', competicion: '', cancha: '', arbitro_principal: '', arbitro_asistente1: '', arbitro_asistente2: '' }); cargarPartidos(); flash('Partido creado.') }
-    catch (e) { flash('Error al crear partido.') }
+    try {
+      if (editIdP) {
+        await actualizarPartido(editIdP, fP)
+        flash('Partido actualizado.')
+      } else {
+        await crearPartido(fP)
+        flash('Partido creado.')
+      }
+      setFP({ local_id: '', visitante_id: '', competicion: '', cancha: '', arbitro_principal: '', arbitro_asistente1: '', arbitro_asistente2: '' })
+      setEditIdP(null)
+      cargarPartidos()
+    } catch (e) { flash('Error al procesar partido.') }
+  }
+
+  const handleEditPartido = (p) => {
+    setFP({
+      local_id: p.local_id,
+      visitante_id: p.visitante_id,
+      competicion: p.competicion || '',
+      cancha: p.cancha || '',
+      arbitro_principal: p.arbitro_principal || '',
+      arbitro_asistente1: p.arbitro_asistente1 || '',
+      arbitro_asistente2: p.arbitro_asistente2 || ''
+    })
+    setEditIdP(p.id)
   }
 
   const handleBorrarPartido = (pid) => setModal({
@@ -192,7 +251,14 @@ export default function AdminPage() {
                   <ToolHeader title="Gestión de Datos" icon={Layout} />
 
                   <form onSubmit={handleCrearEquipo} className="grid-panel bg-[#121212]">
-                    <div className="grid-panel-header italic border-b-[#0078D4]/20">REGISTRAR EQUIPO</div>
+                    <div className="grid-panel-header italic border-b-[#0078D4]/20 flex justify-between items-center">
+                      <span>{editIdE ? 'EDITAR EQUIPO' : 'REGISTRAR EQUIPO'}</span>
+                      {editIdE && (
+                        <button type="button" onClick={() => { setEditIdE(null); setFE({ nombre: '', abrev: '', entrenador: '', color_principal: '#0078D4' }) }}>
+                          <X size={14} className="hover:text-white" />
+                        </button>
+                      )}
+                    </div>
                     <div className="divide-y divide-white/[0.03]">
                       <PropertyField label="Nombre del Equipo">
                         <input className="control-input w-full" value={fE.nombre} onChange={e => setFE({ ...fE, nombre: e.target.value })} placeholder="Nombre del Club..." />
@@ -211,15 +277,17 @@ export default function AdminPage() {
                       </PropertyField>
                     </div>
                     <div className="p-4 bg-white/[0.03] border-t border-white/5">
-                      <button type="submit" className="control-button control-button-accent w-full h-11 text-[11px] font-black tracking-[0.2em]">GUARDAR EQUIPO</button>
+                      <button type="submit" className="control-button control-button-accent w-full h-11 text-[11px] font-black tracking-[0.2em]">
+                        {editIdE ? 'ACTUALIZAR EQUIPO' : 'GUARDAR EQUIPO'}
+                      </button>
                     </div>
                   </form>
 
                   {equipoSel && (
                     <motion.form initial={{ scale: 0.98, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onSubmit={handleCrearJugador} className="grid-panel bg-[#121212] border-t-2 border-t-[#0078D4]">
                       <div className="grid-panel-header bg-[#0078D4]/10 flex justify-between gap-4">
-                        <span className="text-[#0078D4] truncate text-[10px]">AÑADIR JUGADOR: {equipoSel.nombre}</span>
-                        <button onClick={() => setEquipoSel(null)} type="button" className="flex-shrink-0"><X size={14} className="hover:text-white transition-colors" /></button>
+                        <span className="text-[#0078D4] truncate text-[10px]">{editIdJ ? 'EDITAR JUGADOR' : `AÑADIR JUGADOR: ${equipoSel.nombre}`}</span>
+                        <button onClick={() => { setEquipoSel(null); setEditIdJ(null); setFJ({ nombre: '', numero: '', posicion: 'PG', es_titular: false }) }} type="button" className="flex-shrink-0"><X size={14} className="hover:text-white transition-colors" /></button>
                       </div>
                       <div className="divide-y divide-white/[0.03]">
                         <PropertyField label="Nombre del Jugador">
@@ -243,7 +311,9 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div className="p-4 bg-white/[0.03]">
-                        <button type="submit" className="control-button control-button-accent w-full h-11 text-[11px] font-black tracking-widest shadow-[0_4px_20px_rgba(0,120,212,0.2)]">GUARDAR JUGADOR</button>
+                        <button type="submit" className="control-button control-button-accent w-full h-11 text-[11px] font-black tracking-widest shadow-[0_4px_20px_rgba(0,120,212,0.2)]">
+                          {editIdJ ? 'ACTUALIZAR JUGADOR' : 'GUARDAR JUGADOR'}
+                        </button>
                       </div>
                     </motion.form>
                   )}
@@ -298,11 +368,14 @@ export default function AdminPage() {
                                   </button>
                                 ) : (
                                   <>
-                                    <button onClick={() => { setEquipoSel(eq); cargarJugadores(eq.id) }} className="control-button w-14 h-14 p-0 border-[#0078D4]/30 hover:bg-[#0078D4] shadow-lg" title="Ver Plantilla de Jugadores">
-                                      <Users size={24} />
+                                    <button onClick={() => { setEquipoSel(eq); cargarJugadores(eq.id) }} className="control-button w-12 h-12 p-0 border-[#0078D4]/30 hover:bg-[#0078D4] shadow-lg" title="Ver Plantilla de Jugadores">
+                                      <Users size={20} />
                                     </button>
-                                    <button onClick={() => handleBorrarEquipo(eq.id)} className="control-button w-14 h-14 p-0 border-red-500/20 hover:border-red-500/50 hover:bg-red-500/20 text-red-500 shadow-lg" title="Eliminar Equipo">
-                                      <Trash2 size={24} />
+                                    <button onClick={() => handleEditEquipo(eq)} className="control-button w-12 h-12 p-0 border-[#fbbf24]/30 hover:border-[#fbbf24]/50 hover:bg-[#fbbf24]/20 text-[#fbbf24] shadow-lg" title="Editar Equipo">
+                                      <Edit3 size={20} />
+                                    </button>
+                                    <button onClick={() => handleBorrarEquipo(eq.id)} className="control-button w-12 h-12 p-0 border-red-500/20 hover:border-red-500/50 hover:bg-red-500/20 text-red-500 shadow-lg" title="Eliminar Equipo">
+                                      <Trash2 size={20} />
                                     </button>
                                   </>
                                 )}
@@ -333,7 +406,10 @@ export default function AdminPage() {
                                             <span className="text-[10px] font-black text-[#333] uppercase">Banca</span>
                                           }
                                         </td>
-                                        <td className="py-4 text-right"><button onClick={() => handleBorrarJugador(j.id)} className="text-red-500/20 hover:text-red-500 transition-colors p-2"><Trash2 size={18} /></button></td>
+                                        <td className="py-4 text-right flex justify-end gap-2">
+                                          <button onClick={() => handleEditJugador(j)} className="text-[#fbbf24]/30 hover:text-[#fbbf24] transition-colors p-2"><Edit3 size={18} /></button>
+                                          <button onClick={() => handleBorrarJugador(j.id)} className="text-red-500/20 hover:text-red-500 transition-colors p-2"><Trash2 size={18} /></button>
+                                        </td>
                                       </tr>
                                     ))}
                                   </tbody>
@@ -355,7 +431,14 @@ export default function AdminPage() {
                 <div className="col-span-12 lg:col-span-4 border-r border-white/5 p-8 bg-white/[0.005] overflow-y-auto custom-scrollbar">
                   <ToolHeader title="Nuevo Partido" icon={Terminal} />
                   <form onSubmit={handleCrearPartido} className="grid-panel mt-12 bg-[#121212] overflow-visible">
-                    <div className="grid-panel-header italic tracking-[0.2em] border-b-[#0078D4]/40">CONFIGURAR PARTIDO</div>
+                    <div className="grid-panel-header italic tracking-[0.2em] border-b-[#0078D4]/40 flex justify-between items-center">
+                      <span>{editIdP ? 'EDITAR PARTIDO' : 'CONFIGURAR PARTIDO'}</span>
+                      {editIdP && (
+                        <button type="button" onClick={() => { setEditIdP(null); setFP({ local_id: '', visitante_id: '', competicion: '', cancha: '', arbitro_principal: '', arbitro_asistente1: '', arbitro_asistente2: '' }) }}>
+                          <X size={14} className="hover:text-white" />
+                        </button>
+                      )}
+                    </div>
                     <div className="p-8 space-y-8">
                       <PropertyField label="Equipo Local">
                         <select className="control-input w-full uppercase font-black tracking-widest" value={fP.local_id} onChange={e => setFP({ ...fP, local_id: e.target.value })}>
@@ -395,7 +478,9 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div className="p-6 bg-white/[0.03]">
-                      <button type="submit" className="control-button control-button-accent w-full h-16 text-[12px] font-black uppercase tracking-[0.2em] shadow-[0_10px_40px_rgba(0,120,212,0.3)]"><Save size={18} /> CREAR PARTIDOm</button>
+                      <button type="submit" className="control-button control-button-accent w-full h-16 text-[12px] font-black uppercase tracking-[0.2em] shadow-[0_10px_40px_rgba(0,120,212,0.3)]">
+                        <Save size={18} /> {editIdP ? 'ACTUALIZAR PARTIDO' : 'CREAR PARTIDO'}
+                      </button>
                     </div>
                   </form>
                 </div>
@@ -463,6 +548,9 @@ export default function AdminPage() {
                                 title="Imprimir Acta De Partido"
                               >
                                 <Printer size={16} className="group-hover/prt:scale-110 transition-transform" />
+                              </button>
+                              <button onClick={() => handleEditPartido(p)} className="w-11 h-11 bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#fbbf24]/20 hover:text-[#fbbf24] transition-all text-[#444] group/edit shadow-lg" title="Editar Datos del Partido">
+                                <Edit3 size={16} className="group-hover/edit:scale-110 transition-transform" />
                               </button>
                               <button onClick={() => handleBorrarPartido(p.id)} className="w-11 h-11 flex items-center justify-center text-[#222] hover:text-red-500 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20 group/del shadow-lg">
                                 <Trash2 size={16} className="group-hover/del:scale-110 transition-transform" />

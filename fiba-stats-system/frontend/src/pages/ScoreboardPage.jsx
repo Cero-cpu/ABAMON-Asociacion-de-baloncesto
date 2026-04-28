@@ -92,13 +92,13 @@ const PlayerRow = memo(({ player, stats, colorPrincipal, index }) => {
     </tr>
   )
 }, (prev, next) =>
-  JSON.stringify(prev.stats) === JSON.stringify(next.stats) &&
+  prev.stats === next.stats &&
   prev.player.id === next.player.id
 )
 
 const TeamTable = memo(({ equipo, jugadores, getStats, puntos, colorAccent, lado }) => {
   const isLeft = lado === 'local'
-  const totales = calculateTeamTotals(jugadores, getStats)
+  const totales = useMemo(() => calculateTeamTotals(jugadores, getStats), [jugadores, getStats])
 
   return (
     <section className="max-w-[1780px] mx-auto w-full">
@@ -200,7 +200,12 @@ const TeamTable = memo(({ equipo, jugadores, getStats, puntos, colorAccent, lado
 export default function ScoreboardPage() {
   const [searchParams] = useSearchParams()
   const id = searchParams.get('id')
-  const { partido, equipoLocal, equipoVisitante, jugadoresLocal, jugadoresVisitante, getStats, parciales, stats } = usePartido(id, {
+  const {
+    partido, equipoLocal, equipoVisitante,
+    jugadoresLocal, jugadoresVisitante,
+    getStats, parciales, stats,
+    tiempo_restante // Usar el reloj optimizado
+  } = usePartido(id, {
     pollInterval: 3000,
     withParciales: true
   })
@@ -238,7 +243,7 @@ export default function ScoreboardPage() {
               <Clock size={11} /> CLOCK
             </span>
             <div className="text-5xl font-black text-white tracking-wide leading-none tabular-nums">
-              {Math.floor(partido.tiempo_restante / 60)}:{(partido.tiempo_restante % 60).toString().padStart(2, '0')}
+              {Math.floor(tiempo_restante / 60)}:{(tiempo_restante % 60).toString().padStart(2, '0')}
             </div>
           </div>
           <div className="h-10 w-px bg-white/10" />

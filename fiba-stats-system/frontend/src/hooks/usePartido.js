@@ -19,6 +19,12 @@ export function usePartido(partidoId, { pollInterval = 10000, withParciales = fa
         error: null
     })
 
+    // Estado independiente para el reloj para evitar re-renders masivos
+    const [clock, setClock] = useState({
+        tiempo_restante: 600,
+        reloj_activo: false
+    })
+
     const localIdRef = useRef(null)
     const visitIdRef = useRef(null)
     const isMounted = useRef(true)
@@ -36,6 +42,11 @@ export function usePartido(partidoId, { pollInterval = 10000, withParciales = fa
 
             localIdRef.current = p.local_id
             visitIdRef.current = p.visitante_id
+
+            setClock({
+                tiempo_restante: p.tiempo_restante,
+                reloj_activo: p.reloj_activo
+            })
 
             const [resL, resV, resEL, resEV, resS, resParc] = await Promise.all([
                 getJugadores(p.local_id),
@@ -61,7 +72,6 @@ export function usePartido(partidoId, { pollInterval = 10000, withParciales = fa
         }
     }, [updateState, withParciales])
 
-    // Refreshers individuales para actualizaciones ligeras
     const refreshData = useCallback(async () => {
         if (!partidoId) return
         try {
@@ -71,22 +81,25 @@ export function usePartido(partidoId, { pollInterval = 10000, withParciales = fa
                 withParciales ? getParciales(partidoId) : Promise.resolve({ data: state.parciales })
             ])
 
+            const p = resP.data
+            
+            // Solo actualizamos el reloj si NO es un tick (es decir, si cambió el estado base)
+            setClock(prev => ({
+                tiempo_restante: (state.partido?.reloj_activo && p.reloj_activo && state.partido?.cuarto_actual === p.cuarto_actual)
+                    ? prev.tiempo_restante
+                    : p.tiempo_restante,
+                reloj_activo: p.reloj_activo
+            }))
+
             updateState({
-                partido: {
-                    ...resP.data,
-                    // Si el reloj está activo y NO ha cambiado el cuarto, preservamos el tiempo local
-                    // Pero si el cuarto cambió, aceptamos el nuevo tiempo (reset) del servidor
-                    tiempo_restante: (state.partido?.reloj_activo && resP.data.reloj_activo && state.partido?.cuarto_actual === resP.data.cuarto_actual)
-                        ? state.partido.tiempo_restante
-                        : resP.data.tiempo_restante
-                },
+                partido: p,
                 stats: resS.data,
                 parciales: resParc.data
             })
         } catch (error) {
             console.error("Error en refreshData:", error)
         }
-    }, [partidoId, withParciales, state.parciales, updateState])
+    }, [partidoId, withParciales, state.parciales, state.partido, updateState])
 
     const refreshJugadores = useCallback(async () => {
         if (!localIdRef.current || !visitIdRef.current) return
@@ -112,20 +125,28 @@ export function usePartido(partidoId, { pollInterval = 10000, withParciales = fa
 
         const wsHandler = (data) => {
             if (data.event === 'clock_tick') {
-                // Actualizar solo el reloj para máxima fluidez sin sobrecargar el servidor
+                setClock({
+                    tiempo_restante: data.tiempo_restante,
+                    reloj_activo: data.reloj_activo
+                })
+            } else if (data.estado_partido) {
+                // Si el mensaje incluye el estado completo, actualizamos inmediatamente
+                const s = data.estado_partido
+                setClock({
+                    tiempo_restante: s.tiempo_restante,
+                    reloj_activo: s.reloj_activo
+                })
                 setState(prev => {
                     if (!prev.partido) return prev
                     return {
                         ...prev,
-                        partido: {
-                            ...prev.partido,
-                            tiempo_restante: data.tiempo_restante,
-                            reloj_activo: data.reloj_activo
-                        }
+                        partido: { ...prev.partido, ...s }
                     }
                 })
+                // Aún así disparamos un refresh en background para las estadísticas de jugadores
+                // pero el marcador ya se verá actualizado instantáneamente
+                refreshData()
             } else {
-                // Para eventos de anotación u otros cambios de estado, refrescar todo
                 refreshData()
             }
         }
@@ -133,7 +154,6 @@ export function usePartido(partidoId, { pollInterval = 10000, withParciales = fa
         fibaSocket.onUpdate(wsHandler)
 
         const pollTimer = setInterval(() => {
-            // Bajamos la frecuencia del poll masivo si el socket está activo
             refreshData()
             refreshJugadores()
         }, pollInterval)
@@ -150,6 +170,7 @@ export function usePartido(partidoId, { pollInterval = 10000, withParciales = fa
 
     return {
         ...state,
+        ...clock, // Inyectamos tiempo_restante y reloj_activo aquí
         getStats,
         getParcial,
         refreshStats: refreshData,

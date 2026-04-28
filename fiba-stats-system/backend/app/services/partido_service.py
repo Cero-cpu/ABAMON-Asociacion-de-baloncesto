@@ -434,3 +434,20 @@ def obtener_resumen_partido(db: Session, partido_id: int) -> Dict[str, Any]:
         },
         "progresion_puntos": progresion_puntos
     }
+def obtener_estado_ligero(db: Session, partido_id: int) -> Dict[str, Any]:
+    partido = db.query(Partido).filter(Partido.id == partido_id).first()
+    if not partido:
+        return {}
+    
+    return {
+        "pts_local": partido.pts_local,
+        "pts_visitante": partido.pts_visitante,
+        "faltas_equipo_local": partido.faltas_equipo_local,
+        "faltas_equipo_vis": partido.faltas_equipo_vis,
+        "timeouts_local": partido.timeouts_local,
+        "timeouts_vis": partido.timeouts_vis,
+        "cuarto_actual": partido.cuarto_actual,
+        "estado": partido.estado,
+        "reloj_activo": partido.reloj_activo,
+        "tiempo_restante": partido.tiempo_restante
+    }

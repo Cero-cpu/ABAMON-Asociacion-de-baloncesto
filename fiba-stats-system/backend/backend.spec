@@ -1,66 +1,54 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
 import sys
-from PyInstaller.utils.hooks import collect_all
+from PyInstaller.utils.hooks import collect_data_files
 
-# Get the absolute path to the backend directory
-backend_dir = os.path.dirname(os.path.abspath(SPEC))
+block_cipher = None
 
-datas = [
-    # Manually include the app folder just in case
+# Ensure we include all necessary files from the app directory
+added_files = [
     ('app', 'app'),
-    ('.env', '.'),
-    ('fiba_stats.db', '.')
-]
-binaries = []
-hiddenimports = [
-    'uvicorn.logging',
-    'uvicorn.loops',
-    'uvicorn.loops.auto',
-    'uvicorn.protocols',
-    'uvicorn.protocols.http',
-    'uvicorn.protocols.http.auto',
-    'uvicorn.protocols.websockets',
-    'uvicorn.protocols.websockets.auto',
-    'uvicorn.lifespan',
-    'uvicorn.lifespan.on',
-    'app',
-    'app.app',
-    'app.core',
-    'app.core.config',
-    'app.db',
-    'app.db.database',
-    'app.models',
-    'app.api',
-    'app.api.routes',
-    'app.websockets',
-    'app.websockets.manager'
+    ('fiba_stats.db', '.'),
+    ('.env', '.')
 ]
 
-# Collect dependencies for uvicorn
-tmp_ret = collect_all('uvicorn')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-
-# Collect dependencies for fastapi and pydantic
-tmp_ret = collect_all('fastapi')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('pydantic')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-
+# Collect all submodules to ensure they are bundled
 a = Analysis(
     ['main.py'],
-    pathex=[backend_dir],
-    binaries=binaries,
-    datas=datas,
-    hiddenimports=hiddenimports,
+    pathex=[],
+    binaries=[],
+    datas=added_files,
+    hiddenimports=[
+        'app.api.routes.equipos',
+        'app.api.routes.jugadores',
+        'app.api.routes.partidos',
+        'app.api.routes.stats',
+        'app.api.routes.eventos',
+        'app.api.routes.parciales',
+        'app.api.routes.auth',
+        'uvicorn.logging',
+        'uvicorn.loops',
+        'uvicorn.loops.auto',
+        'uvicorn.protocols',
+        'uvicorn.protocols.http',
+        'uvicorn.protocols.http.auto',
+        'uvicorn.protocols.websockets',
+        'uvicorn.protocols.websockets.auto',
+        'uvicorn.lifespan',
+        'uvicorn.lifespan.on',
+        'pydantic_settings'
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
     noarchive=False,
-    optimize=0,
 )
-pyz = PYZ(a.pure)
+
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(
     pyz,

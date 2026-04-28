@@ -93,12 +93,28 @@ const CenterHUD = memo(({ partido }) => {
 const ParcialesBar = memo(({ parciales, partido }) => {
   const quarters = useMemo(() => {
     return [1, 2, 3, 4].map(q => {
-      const p = parciales?.find(p => p.cuarto === q && p.intervalo === 2)
+      const qParciales = parciales?.filter(p => p.cuarto === q) || []
       const isActive = partido.cuarto_actual === q
-      const hasData = !!p
-      return { q, local: p?.pts_local ?? 0, visitor: p?.pts_visitante ?? 0, isActive, hasData }
+
+      // Para cuartos pasados, sumamos los intervalos guardados
+      let local = qParciales.reduce((sum, p) => sum + (p.pts_local || 0), 0)
+      let visitor = qParciales.reduce((sum, p) => sum + (p.pts_visitante || 0), 0)
+      let hasData = qParciales.length > 0
+
+      // Para el cuarto activo, calculamos los puntos actuales del cuarto basándonos en el total del partido
+      if (isActive) {
+        const parcialesPrevios = parciales?.filter(p => p.cuarto < q) || []
+        const sumaPreviosLocal = parcialesPrevios.reduce((acc, p) => acc + (p.pts_local || 0), 0)
+        const sumaPreviosVis = parcialesPrevios.reduce((acc, p) => acc + (p.pts_visitante || 0), 0)
+
+        local = partido.pts_local - sumaPreviosLocal
+        visitor = partido.pts_visitante - sumaPreviosVis
+        hasData = true
+      }
+
+      return { q, local, visitor, isActive, hasData }
     })
-  }, [parciales, partido.cuarto_actual])
+  }, [parciales, partido.cuarto_actual, partido.pts_local, partido.pts_visitante])
 
   const totalLocal = quarters.reduce((s, q) => s + (q.local ?? 0), 0)
   const totalVisitor = quarters.reduce((s, q) => s + (q.visitor ?? 0), 0)

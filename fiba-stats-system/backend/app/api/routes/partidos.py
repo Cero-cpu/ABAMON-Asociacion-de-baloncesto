@@ -1,12 +1,51 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 from app.db.database import get_db
 from app.models.partido import Partido, EstadoPartido
-from app.schemas.partido import PartidoCreate, PartidoRead
+from app.schemas.partido import PartidoCreate, PartidoRead, PartidoUpdate
 from app.services import partido_service
 
 router = APIRouter()
+
+@router.post("/{partido_id}/manual-update")
+def manual_update_partido(partido_id: int, data: dict, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    partido = db.query(Partido).filter(Partido.id == partido_id).first()
+    if not partido:
+        raise HTTPException(status_code=404, detail="Partido no encontrado")
+    
+    # Actualizamos solo los campos que vengan en el dict y existan en el modelo
+    for campo, valor in data.items():
+        if hasattr(partido, campo):
+            setattr(partido, campo, valor)
+    
+    try:
+        db.commit()
+        db.refresh(partido)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error DB: {str(e)}")
+    
+    background_tasks.add_task(broadcast_manual_update, partido_id)
+    return {"status": "ok", "partido_id": partido_id}
+
+async def broadcast_manual_update(partido_id: int):
+    try:
+        from app.websockets.manager import broadcast_update
+        from app.services.partido_service import obtener_estado_ligero
+        from app.db.database import SessionLocal
+        db = SessionLocal()
+        try:
+            estado = obtener_estado_ligero(db, partido_id)
+            await broadcast_update(partido_id, {
+                "tipo": "MANUAL_UPDATE",
+                "partido_id": partido_id,
+                "estado_partido": estado
+            })
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Error broadcast: {e}")
 
 @router.get("", response_model=List[PartidoRead])
 def listar_partidos(db: Session = Depends(get_db)):
@@ -88,6 +127,7 @@ def iniciar_partido(partido_id: int, db: Session = Depends(get_db)):
 @router.get("/{partido_id}/resumen")
 def resumen_partido(partido_id: int, db: Session = Depends(get_db)):
     return partido_service.obtener_resumen_partido(db, partido_id)
+
 
 @router.put("/{partido_id}/reloj/toggle", response_model=PartidoRead)
 def toggle_reloj(partido_id: int, db: Session = Depends(get_db)):

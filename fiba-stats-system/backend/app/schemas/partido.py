@@ -15,6 +15,25 @@ class PartidoBase(BaseModel):
 class PartidoCreate(PartidoBase):
     pass
 
+class PartidoUpdate(BaseModel):
+    local_id: Optional[int] = None
+    visitante_id: Optional[int] = None
+    competicion: Optional[str] = None
+    cancha: Optional[str] = None
+    arbitro_principal: Optional[str] = None
+    arbitro_asistente1: Optional[str] = None
+    arbitro_asistente2: Optional[str] = None
+    cuarto_actual: Optional[int] = None
+    estado: Optional[EstadoPartido] = None
+    pts_local: Optional[int] = None
+    pts_visitante: Optional[int] = None
+    faltas_equipo_local: Optional[int] = None
+    faltas_equipo_vis: Optional[int] = None
+    timeouts_local: Optional[int] = None
+    timeouts_vis: Optional[int] = None
+    tiempo_restante: Optional[int] = None
+    reloj_activo: Optional[bool] = None
+
 class EquipoMin(BaseModel):
     nombre: str
     abrev: Optional[str]

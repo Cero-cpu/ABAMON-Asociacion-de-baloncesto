@@ -1,17 +1,76 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   registrarEvento, deshacerEvento, rehacerEvento, avanzarCuarto,
   guardarParcial, iniciarPartido, finalizarPartido, getPartido,
-  toggleReloj, setReloj
+  toggleReloj, setReloj, actualizarPartido
 } from '../services/api'
 import {
   RotateCcw, RotateCw, Shield, Terminal, Zap, Cpu, Database,
-  ChevronLeft, ChevronRight, Layout, Info, Server, Play, Pause, Timer
+  ChevronLeft, ChevronRight, Layout, Info, Server, Play, Pause, Timer,
+  Edit3, Save
 } from 'lucide-react'
 import { usePartido } from '../hooks/usePartido'
 import HistoryControls from '../components/HistoryControls'
+
+// Componentes Memoizados para alto rendimiento
+const StatItem = memo(({ label, value, color }) => (
+  <div className="bg-black border border-white/5 px-4 h-12 flex flex-col items-center justify-center min-w-[70px]">
+    <span className="text-[8px] font-black text-[#333] uppercase mb-1">{label}</span>
+    <span className="text-xl font-oswald font-black italic" style={{ color }}>{value}</span>
+  </div>
+))
+
+const ActionButton = memo(({ accion, disabled, onClick }) => (
+  <button onClick={() => onClick(accion)} disabled={disabled}
+    className={`group h-32 border flex flex-col items-center justify-center gap-3 transition-all relative overflow-hidden
+    ${disabled ? 'opacity-10 cursor-not-allowed' : 'hover:bg-white/[0.03] active:scale-[0.98]'}
+    `}
+    style={{ borderColor: accion.dim ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.08)' }}>
+    <span className="text-[10px] font-black uppercase tracking-widest text-center px-2" style={{ color: accion.color, opacity: accion.dim ? 0.6 : 1 }}>{accion.label}</span>
+    <div className={`w-8 h-[1px] ${accion.dim ? 'bg-[#333]' : ''}`} style={{ backgroundColor: !accion.dim ? accion.color : undefined, opacity: 0.3 }} />
+    <div className="absolute top-0 right-0 p-1 opacity-10 group-hover:opacity-100 transition-opacity"><Zap size={10} style={{ color: accion.color }} /></div>
+  </button>
+))
+
+const PlayerRow = memo(({ j, stats, isSelected, onClick }) => (
+  <button onClick={onClick}
+    className={`w-full p-3 border text-left flex items-center gap-4 transition-all ${isSelected ? 'bg-[#0078D4]/10 border-[#0078D4]/30' : 'bg-transparent border-transparent hover:bg-white/[0.02]'}`}>
+    <span className={`text-2xl font-oswald font-black italic w-8 text-center ${isSelected ? 'text-[#0078D4]' : 'text-[#333]'}`}>#{j.numero}</span>
+    <div className="overflow-hidden">
+      <p className={`text-[11px] font-black uppercase truncate ${isSelected ? 'text-white' : 'text-[#666]'}`}>{j.nombre}</p>
+      <div className="flex gap-3 text-[8px] font-bold text-[#444] tracking-widest">
+        <span>{stats.puntos || 0}P</span>
+        <span>{stats.rebotes_totales || 0}R</span>
+        <span>{stats.faltas || 0}F</span>
+      </div>
+    </div>
+  </button>
+))
+
+const ClockDisplay = memo(({ tiempo, activo, formatTime, isEditing, fManual, setFManual }) => {
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-1">
+        <input
+          type="number"
+          className="w-14 bg-transparent text-center border-b border-white/20"
+          value={Math.floor(fManual.tiempo_restante / 60)}
+          onChange={e => setFManual({ ...fManual, tiempo_restante: (parseInt(e.target.value) || 0) * 60 + (fManual.tiempo_restante % 60) })}
+        />
+        <span>:</span>
+        <input
+          type="number"
+          className="w-14 bg-transparent text-center border-b border-white/20"
+          value={fManual.tiempo_restante % 60}
+          onChange={e => setFManual({ ...fManual, tiempo_restante: (Math.floor(fManual.tiempo_restante / 60) * 60) + (parseInt(e.target.value) || 0) })}
+        />
+      </div>
+    )
+  }
+  return <>{formatTime(tiempo)}</>
+})
 
 const ACCIONES = [
   { grupo: 'TIROS', tipo: 'T2_CONV', label: '2P CONV', color: '#0078D4' },
@@ -57,9 +116,21 @@ export default function ElectronicoPage() {
 
   const {
     partido, equipoLocal, equipoVisitante,
-    jugadoresLocal, jugadoresVisitante,
-    getStats, refreshStats, refreshPartido, parciales
+    jugadoresLocal, jugadoresVisitante, stats,
+    tiempo_restante, reloj_activo, parciales,
+    refreshPartido, refreshData, refreshJugadores
   } = usePartido(partidoId, { pollInterval: 10000, withParciales: true })
+
+  // Optimización: Mapa de estadísticas para búsqueda O(1)
+  const statsMap = useMemo(() => {
+    const map = {}
+    stats.forEach(s => { map[s.jugador_id] = s })
+    return map
+  }, [stats])
+
+  const getStats = (jugadorId) => statsMap[jugadorId] || {}
+  const [editManual, setEditManual] = useState(false)
+  const [fManual, setFManual] = useState({})
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60)
@@ -102,7 +173,7 @@ export default function ElectronicoPage() {
         equipo_id: teamId,
         tipo: 'TIMEOUT',
         cuarto: partido.cuarto_actual,
-        tiempo: formatTime(partido.tiempo_restante)
+        tiempo: formatTime(tiempo_restante)
       })
       refreshPartido()
       flash(`TIEMPO MUERTO REGISTRADO`, '#0078D4')
@@ -176,7 +247,7 @@ export default function ElectronicoPage() {
       equipo_id: equipoSel,
       tipo: accion.tipo,
       cuarto: partido.cuarto_actual,
-      tiempo: formatTime(partido.tiempo_restante)
+      tiempo: formatTime(tiempo_restante)
     })
     refreshStats()
     refreshPartido()
@@ -199,6 +270,48 @@ export default function ElectronicoPage() {
     refreshStats()
     refreshPartido()
     flash('CAMBIO REHECHO', '#0078D4')
+  }
+
+  const handleToggleManual = () => {
+    if (!partido) return
+    if (!editManual) {
+      setFManual({
+        pts_local: partido.pts_local,
+        pts_visitante: partido.pts_visitante,
+        faltas_equipo_local: partido.faltas_equipo_local,
+        faltas_equipo_vis: partido.faltas_equipo_vis,
+        timeouts_local: partido.timeouts_local,
+        timeouts_vis: partido.timeouts_vis,
+        cuarto_actual: partido.cuarto_actual,
+        tiempo_restante: partido.tiempo_restante
+      })
+    }
+    setEditManual(!editManual)
+  }
+
+  const handleSaveManual = async () => {
+    if (!partidoId || !partido) {
+      flash('ID_PARTIDO_NO_ENCONTRADO', '#f43f5e')
+      return
+    }
+    try {
+      const dataToSend = {
+        ...fManual,
+        reloj_activo: reloj_activo // Incluimos el estado actual del reloj
+      }
+      console.log("Enviando actualización manual:", dataToSend)
+      
+      await actualizarPartido(parseInt(partidoId), dataToSend)
+      setEditManual(false)
+      flash('DATOS_GUARDADOS_MANUALMENTE', '#10b981')
+      refreshPartido()
+    } catch (e) {
+      console.error("Error detallado:", e)
+      const detail = e.response?.data?.detail
+      const fullError = typeof detail === 'object' ? JSON.stringify(detail) : (detail || e.message)
+      alert("ERROR AL GUARDAR: " + fullError)
+      flash(`ERROR: ${fullError}`, '#f43f5e')
+    }
   }
 
   const handleIniciar = async () => {
@@ -276,6 +389,26 @@ export default function ElectronicoPage() {
               <RotateCw size={14} className="group-active:rotate-180 transition-transform duration-500" />
             </button>
           </div>
+
+          <div className="h-4 w-px bg-white/5" />
+
+          <button
+            onClick={handleToggleManual}
+            className={`flex items-center gap-2 px-4 py-1 rounded transition-all text-[10px] font-black uppercase tracking-widest ${editManual ? 'bg-[#fbbf24] text-black shadow-[0_0_15px_rgba(251,191,36,0.3)]' : 'bg-white/5 border border-white/5 text-[#fbbf24] hover:bg-[#fbbf24]/10'}`}
+          >
+            <Edit3 size={14} />
+            <span>{editManual ? 'CANCELAR EDICIÓN' : 'EDICIÓN MANUAL'}</span>
+          </button>
+
+          {editManual && (
+            <button
+              onClick={handleSaveManual}
+              className="flex items-center gap-2 px-4 py-1 rounded bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] text-[10px] font-black uppercase tracking-widest animate-pulse"
+            >
+              <Save size={14} />
+              <span>GUARDAR CAMBIOS</span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-8">
@@ -303,9 +436,18 @@ export default function ElectronicoPage() {
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] font-black text-white/40">FALTAS:</span>
-                  <span className={`text-[12px] font-oswald font-black ${partido.faltas_equipo_local >= 4 ? 'text-red-500' : 'text-[#0078D4]'}`}>
-                    {partido.faltas_equipo_local}
-                  </span>
+                  {editManual ? (
+                    <input
+                      type="number"
+                      className="w-12 bg-black/40 border border-[#0078D4]/40 text-[#0078D4] font-oswald text-center text-sm"
+                      value={fManual.faltas_equipo_local}
+                      onChange={e => setFManual({ ...fManual, faltas_equipo_local: parseInt(e.target.value) || 0 })}
+                    />
+                  ) : (
+                    <span className={`text-[12px] font-oswald font-black ${partido.faltas_equipo_local >= 4 ? 'text-red-500' : 'text-[#0078D4]'}`}>
+                      {partido.faltas_equipo_local}
+                    </span>
+                  )}
                   {partido.faltas_equipo_local >= 4 && (
                     <span className="px-1.5 py-0.5 bg-red-600 text-white text-[7px] font-black rounded-sm animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]">BONUS</span>
                   )}
@@ -313,23 +455,45 @@ export default function ElectronicoPage() {
                 <div className="h-3 w-px bg-white/10" />
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-black text-white/40">T.O.:</span>
-                  <div className="flex gap-1">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className={`w-2 h-2 rounded-full ${i <= partido.timeouts_local ? 'bg-[#0078D4]' : 'bg-white/10'}`} />
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => handleTimeout(partido.local_id)}
-                    className="ml-1 w-6 h-6 bg-white/5 border border-white/5 hover:bg-[#0078D4]/20 hover:border-[#0078D4]/50 flex items-center justify-center rounded-sm transition-all"
-                    title="Registrar Tiempo Muerto"
-                  >
-                    <Timer size={12} className="text-[#0078D4]" />
-                  </button>
+                  {editManual ? (
+                    <input
+                      type="number"
+                      className="w-10 bg-black/40 border border-[#0078D4]/40 text-[#0078D4] font-oswald text-center text-sm"
+                      max={3}
+                      min={0}
+                      value={fManual.timeouts_local}
+                      onChange={e => setFManual({ ...fManual, timeouts_local: parseInt(e.target.value) || 0 })}
+                    />
+                  ) : (
+                    <div className="flex gap-1">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className={`w-2 h-2 rounded-full ${i <= partido.timeouts_local ? 'bg-[#0078D4]' : 'bg-white/10'}`} />
+                      ))}
+                    </div>
+                  )}
+                  {!editManual && (
+                    <button
+                      onClick={() => handleTimeout(partido.local_id)}
+                      className="ml-1 w-6 h-6 bg-white/5 border border-white/5 hover:bg-[#0078D4]/20 hover:border-[#0078D4]/50 flex items-center justify-center rounded-sm transition-all"
+                      title="Registrar Tiempo Muerto"
+                    >
+                      <Timer size={12} className="text-[#0078D4]" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           </div>
-          <div className="text-6xl font-oswald font-black text-white italic ml-auto mr-10 tabular-nums">{partido.pts_local}</div>
+          {editManual ? (
+            <input
+              type="number"
+              className="w-28 h-16 bg-black/60 border border-[#0078D4] text-white font-oswald font-black text-5xl text-center italic ml-auto mr-10 tabular-nums"
+              value={fManual.pts_local}
+              onChange={e => setFManual({ ...fManual, pts_local: parseInt(e.target.value) || 0 })}
+            />
+          ) : (
+            <div className="text-6xl font-oswald font-black text-white italic ml-auto mr-10 tabular-nums">{partido.pts_local}</div>
+          )}
         </div>
 
         <div className="flex flex-col items-center gap-2 min-w-[340px] border-x border-white/5 h-full justify-center bg-white/[0.01]">
@@ -340,22 +504,38 @@ export default function ElectronicoPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleToggleReloj}
-                  className={`w-10 h-10 flex items-center justify-center rounded border transition-all ${partido.reloj_activo ? 'bg-red-500/20 border-red-500/50 text-red-500' : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-500'}`}
+                  className={`w-10 h-10 flex items-center justify-center rounded border transition-all ${reloj_activo ? 'bg-red-500/20 border-red-500/50 text-red-500' : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-500'}`}
                 >
-                  {partido.reloj_activo ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
+                  {reloj_activo ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
                 </button>
                 <div className="bg-black/40 border border-white/5 text-white font-oswald text-4xl text-center w-32 h-12 flex items-center justify-center tabular-nums shadow-inner">
-                  {formatTime(partido.tiempo_restante)}
+                  <ClockDisplay 
+                    tiempo={tiempo_restante} 
+                    activo={reloj_activo} 
+                    formatTime={formatTime} 
+                    isEditing={editManual} 
+                    fManual={fManual} 
+                    setFManual={setFManual} 
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <button onClick={() => handleSetReloj(600)} className="w-8 h-5 bg-white/5 hover:bg-white/10 flex items-center justify-center rounded text-[8px] font-bold">10</button>
-                  <button onClick={() => handleSetReloj(partido.tiempo_restante + 60)} className="w-8 h-5 bg-white/5 hover:bg-white/10 flex items-center justify-center rounded text-[8px] font-bold">+1</button>
+                  <button onClick={() => handleSetReloj(tiempo_restante + 60)} className="w-8 h-5 bg-white/5 hover:bg-white/10 flex items-center justify-center rounded text-[8px] font-bold">+1</button>
                 </div>
               </div>
             </div>
             <div className="flex flex-col items-center">
               <span className="text-[7px] font-black text-white/20 uppercase tracking-[0.3em] mb-1">PERIODO</span>
-              <div className="bg-[#0078D4]/10 border border-[#0078D4]/30 text-[#0078D4] font-oswald font-black text-3xl w-16 h-12 flex items-center justify-center shadow-[0_0_15_rgba(0,120,212,0.1)]">P{partido.cuarto_actual}</div>
+              {editManual ? (
+                <input
+                  type="number"
+                  className="bg-[#0078D4]/10 border border-[#0078D4]/30 text-[#0078D4] font-oswald font-black text-3xl w-16 h-12 text-center"
+                  value={fManual.cuarto_actual}
+                  onChange={e => setFManual({ ...fManual, cuarto_actual: parseInt(e.target.value) || 1 })}
+                />
+              ) : (
+                <div className="bg-[#0078D4]/10 border border-[#0078D4]/30 text-[#0078D4] font-oswald font-black text-3xl w-16 h-12 flex items-center justify-center shadow-[0_0_15_rgba(0,120,212,0.1)]">P{partido.cuarto_actual}</div>
+              )}
             </div>
           </div>
 
@@ -412,18 +592,31 @@ export default function ElectronicoPage() {
             <div className="flex items-center justify-end gap-6 mt-1">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleTimeout(partido.visitante_id)}
-                    className="mr-1 w-6 h-6 bg-white/5 border border-white/5 hover:bg-[#0078D4]/20 hover:border-[#0078D4]/50 flex items-center justify-center rounded-sm transition-all"
-                    title="Registrar Tiempo Muerto"
-                  >
-                    <Timer size={12} className="text-[#0078D4]" />
-                  </button>
-                  <div className="flex gap-1">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className={`w-2 h-2 rounded-full ${i <= partido.timeouts_vis ? 'bg-[#0078D4]' : 'bg-white/10'}`} />
-                    ))}
-                  </div>
+                  {editManual ? (
+                    <input
+                      type="number"
+                      className="w-10 bg-black/40 border border-[#0078D4]/40 text-[#0078D4] font-oswald text-center text-sm"
+                      max={3}
+                      min={0}
+                      value={fManual.timeouts_vis}
+                      onChange={e => setFManual({ ...fManual, timeouts_vis: parseInt(e.target.value) || 0 })}
+                    />
+                  ) : (
+                    <div className="flex gap-1">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className={`w-2 h-2 rounded-full ${i <= partido.timeouts_vis ? 'bg-[#0078D4]' : 'bg-white/10'}`} />
+                      ))}
+                    </div>
+                  )}
+                  {!editManual && (
+                    <button
+                      onClick={() => handleTimeout(partido.visitante_id)}
+                      className="mr-1 w-6 h-6 bg-white/5 border border-white/5 hover:bg-[#0078D4]/20 hover:border-[#0078D4]/50 flex items-center justify-center rounded-sm transition-all"
+                      title="Registrar Tiempo Muerto"
+                    >
+                      <Timer size={12} className="text-[#0078D4]" />
+                    </button>
+                  )}
                   <span className="text-[10px] font-black text-white/40">T.O.:</span>
                 </div>
                 <div className="h-3 w-px bg-white/10" />
@@ -432,15 +625,33 @@ export default function ElectronicoPage() {
                     <span className="px-1.5 py-0.5 bg-red-600 text-white text-[7px] font-black rounded-sm animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]">BONUS</span>
                   )}
                   <span className="text-[10px] font-black text-white/40">FALTAS:</span>
-                  <span className={`text-[12px] font-oswald font-black ${partido.faltas_equipo_vis >= 4 ? 'text-red-500' : 'text-[#0078D4]'}`}>
-                    {partido.faltas_equipo_vis}
-                  </span>
+                  {editManual ? (
+                    <input
+                      type="number"
+                      className="w-12 bg-black/40 border border-[#0078D4]/40 text-[#0078D4] font-oswald text-center text-sm"
+                      value={fManual.faltas_equipo_vis}
+                      onChange={e => setFManual({ ...fManual, faltas_equipo_vis: parseInt(e.target.value) || 0 })}
+                    />
+                  ) : (
+                    <span className={`text-[12px] font-oswald font-black ${partido.faltas_equipo_vis >= 4 ? 'text-red-500' : 'text-[#0078D4]'}`}>
+                      {partido.faltas_equipo_vis}
+                    </span>
+                  )}
                 </div>
               </div>
               <p className="text-[9px] font-black text-[#444] tracking-widest uppercase">EQUIPO VISITANTE</p>
             </div>
           </div>
-          <div className="text-6xl font-oswald font-black text-white italic mr-auto ml-10 tabular-nums">{partido.pts_visitante}</div>
+          {editManual ? (
+            <input
+              type="number"
+              className="w-28 h-16 bg-black/60 border border-[#0078D4] text-white font-oswald font-black text-5xl text-center italic mr-auto ml-10 tabular-nums"
+              value={fManual.pts_visitante}
+              onChange={e => setFManual({ ...fManual, pts_visitante: parseInt(e.target.value) || 0 })}
+            />
+          ) : (
+            <div className="text-6xl font-oswald font-black text-white italic mr-auto ml-10 tabular-nums">{partido.pts_visitante}</div>
+          )}
         </div>
       </div>
 
@@ -457,24 +668,15 @@ export default function ElectronicoPage() {
             ))}
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
-            {jugadores.map(j => {
-              const sel = jugadorSel?.id === j.id
-              const s = getStats(j.id)
-              return (
-                <button key={j.id} onClick={() => { setJugadorSel(j); setEquipoSel(tab === 'local' ? partido.local_id : partido.visitante_id) }}
-                  className={`w-full p-3 border text-left flex items-center gap-4 transition-all ${sel ? 'bg-[#0078D4]/10 border-[#0078D4]/30' : 'bg-transparent border-transparent hover:bg-white/[0.02]'}`}>
-                  <span className={`text-2xl font-oswald font-black italic w-8 text-center ${sel ? 'text-[#0078D4]' : 'text-[#333]'}`}>#{j.numero}</span>
-                  <div className="overflow-hidden">
-                    <p className={`text-[11px] font-black uppercase truncate ${sel ? 'text-white' : 'text-[#666]'}`}>{j.nombre}</p>
-                    <div className="flex gap-3 text-[8px] font-bold text-[#444] tracking-widest">
-                      <span>{s.puntos || 0}P</span>
-                      <span>{s.rebotes_totales || 0}R</span>
-                      <span>{s.faltas || 0}F</span>
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
+            {jugadores.map(j => (
+              <PlayerRow 
+                key={j.id} 
+                j={j} 
+                stats={getStats(j.id)} 
+                isSelected={jugadorSel?.id === j.id} 
+                onClick={() => { setJugadorSel(j); setEquipoSel(tab === 'local' ? partido.local_id : partido.visitante_id) }}
+              />
+            ))}
           </div>
         </aside>
 
@@ -496,10 +698,12 @@ export default function ElectronicoPage() {
                 </div>
                 <div className="flex gap-1">
                   {STATS_MAP.map(s => (
-                    <div key={s.key} className="bg-black border border-white/5 px-4 h-12 flex flex-col items-center justify-center min-w-[70px]">
-                      <span className="text-[8px] font-black text-[#333] uppercase mb-1">{s.label}</span>
-                      <span className="text-xl font-oswald font-black italic" style={{ color: s.color }}>{getStats(jugadorSel.id)[s.key] || 0}</span>
-                    </div>
+                    <StatItem 
+                      key={s.key} 
+                      label={s.label} 
+                      value={getStats(jugadorSel.id)[s.key] || 0} 
+                      color={s.color} 
+                    />
                   ))}
                 </div>
               </>
@@ -509,15 +713,12 @@ export default function ElectronicoPage() {
           {/* ACTION GRID - Grouped for Logic */}
           <div className="flex-1 grid grid-cols-4 xl:grid-cols-6 gap-2 content-start overflow-y-auto custom-scrollbar pr-2">
             {ACCIONES.map(a => (
-              <button key={a.tipo} onClick={() => handleAccion(a)} disabled={!jugadorSel}
-                className={`group h-32 border flex flex-col items-center justify-center gap-3 transition-all relative overflow-hidden
-                                ${!jugadorSel ? 'opacity-10 cursor-not-allowed' : 'hover:bg-white/[0.03] active:scale-[0.98]'}
-                              `}
-                style={{ borderColor: a.dim ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.08)' }}>
-                <span className="text-[10px] font-black uppercase tracking-widest text-center px-2" style={{ color: a.color, opacity: a.dim ? 0.6 : 1 }}>{a.label}</span>
-                <div className={`w-8 h-[1px] ${a.dim ? 'bg-[#333]' : ''}`} style={{ backgroundColor: !a.dim ? a.color : undefined, opacity: 0.3 }} />
-                <div className="absolute top-0 right-0 p-1 opacity-10 group-hover:opacity-100 transition-opacity"><Zap size={10} style={{ color: a.color }} /></div>
-              </button>
+              <ActionButton 
+                key={a.tipo} 
+                accion={a} 
+                disabled={!jugadorSel} 
+                onClick={handleAccion} 
+              />
             ))}
           </div>
 
