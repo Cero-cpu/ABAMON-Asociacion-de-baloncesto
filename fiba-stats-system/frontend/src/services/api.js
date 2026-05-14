@@ -1,9 +1,22 @@
 import axios from 'axios'
 
+const getBaseURL = () => {
+  // 1. Si hay una URL en .env, la usamos
+  let url = import.meta.env.VITE_API_URL;
+  
+  // 2. Si estamos en local y no hay .env, usamos 8001 (tu puerto actual)
+  if (!url) {
+    url = window.location.hostname === 'localhost' ? 'http://localhost:8001/api' : '/api';
+  }
+  
+  // 3. Garantía de prefijo /api (evita 404 en Render)
+  return url.endsWith('/api') ? url : `${url}/api`;
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:8000/api' : '/api'),
+  baseURL: getBaseURL(),
   headers: { 'Content-Type': 'application/json' },
-  timeout: 15000 // 15 seconds timeout to prevent infinite hanging
+  timeout: 25000 // 25s para dar tiempo de sobra al cold-start de Render
 })
 
 // Intercept requests to add authentication token
