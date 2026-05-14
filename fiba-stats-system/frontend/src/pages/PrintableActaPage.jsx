@@ -95,22 +95,36 @@ export default function PrintableActaPage() {
     const evV = resumen.estadisticas?.visitante || []
 
     // Build quarter scores from parciales
-    const getQuarterScores = () => {
+    const quarterScores = (() => {
         const scores = { local: [0, 0, 0, 0], visitante: [0, 0, 0, 0] }
         if (parciales.length > 0) {
             parciales.forEach(p => {
                 const idx = (p.cuarto || 1) - 1
                 if (idx >= 0 && idx < 4) {
-                    // Sum both intervals for each quarter
                     scores.local[idx] += (p.pts_local || 0)
                     scores.visitante[idx] += (p.pts_visitante || 0)
                 }
             })
         }
-        return scores
-    }
+        
+        // Ajuste manual: Si el total del partido no coincide con la suma de parciales
+        // (porque se editó a mano), ajustamos el último cuarto con datos para que cuadre el total.
+        const sumL = scores.local.reduce((a, b) => a + b, 0)
+        const sumV = scores.visitante.reduce((a, b) => a + b, 0)
+        
+        if (sumL !== partido.pts_local) {
+            const diff = partido.pts_local - sumL
+            const lastIdx = Math.max(0, (partido.cuarto_actual || 1) - 1)
+            scores.local[Math.min(3, lastIdx)] += diff
+        }
+        if (sumV !== partido.pts_visitante) {
+            const diff = partido.pts_visitante - sumV
+            const lastIdx = Math.max(0, (partido.cuarto_actual || 1) - 1)
+            scores.visitante[Math.min(3, lastIdx)] += diff
+        }
 
-    const quarterScores = getQuarterScores()
+        return scores
+    })()
 
     // Accumulated scores per quarter (the image shows accumulated C1, C2, C3, C4)
     const accumulatedL = []
@@ -130,14 +144,16 @@ export default function PrintableActaPage() {
     }
 
     // Calculate team totals
-    const calcTotals = (players) => {
+    const calcTotals = (players, isLocal) => {
         const t = {
             min: 0, tcConv: 0, tcTotal: 0,
             t2Conv: 0, t2Total: 0, t3Conv: 0, t3Total: 0,
             tlConv: 0, tlTotal: 0,
             ro: 0, rd: 0, rt: 0,
             as: 0, per: 0, rec: 0, tf: 0,
-            fc: 0, fr: 0, masMenos: 0, ef: 0, pts: 0
+            fc: isLocal ? (partido.faltas_equipo_local || 0) : (partido.faltas_equipo_vis || 0), // USAR DATOS DEL PARTIDO (MANUALES)
+            fr: 0, masMenos: 0, ef: 0, 
+            pts: isLocal ? (partido.pts_local || 0) : (partido.pts_visitante || 0) // USAR PUNTOS OFICIALES DEL PARTIDO
         }
         players.forEach(p => {
             const mins = parseFloat(p.minutos || 0)
@@ -155,11 +171,11 @@ export default function PrintableActaPage() {
             t.per += (p.perdidas || 0)
             t.rec += (p.recuperos || 0)
             t.tf += (p.bloqueos || 0)
-            t.fc += (p.faltas || 0)
+            // t.fc += (p.faltas || 0) // No sumamos de jugadores para el total oficial
             t.fr += (p.faltas_recibidas || 0)
             t.masMenos += (p.mas_menos || 0)
             t.ef += (p.eficiencia || 0)
-            t.pts += (p.puntos || 0)
+            // t.pts += (p.puntos || 0) // No sumamos de jugadores para el total oficial
         })
         t.tcConv = t.t2Conv + t.t3Conv
         t.tcTotal = t.t2Total + t.t3Total
@@ -250,7 +266,8 @@ export default function PrintableActaPage() {
         const notPlayed = players.filter(p => p.nj)
         const sortedPlayers = [...starters, ...bench, ...notPlayed]
 
-        const totals = calcTotals(players)
+        const totals = calcTotals(players, isLocal)
+        const timeouts = isLocal ? (partido.timeouts_local || 0) : (partido.timeouts_vis || 0)
 
         // Coach display
         const coachLine = entrenador || ''
@@ -260,8 +277,9 @@ export default function PrintableActaPage() {
             <div style={{ marginBottom: '6px' }}>
                 {/* Team header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1px' }}>
-                    <div style={{ fontWeight: 'bold', fontSize: '10px', textTransform: 'uppercase' }}>
-                        {teamName} ({abrev})
+                    <div style={{ fontWeight: 'bold', fontSize: '10px', textTransform: 'uppercase', display: 'flex', gap: '15px', alignItems: 'center' }}>
+                        <span>{teamName} ({abrev})</span>
+                        <span style={{ fontSize: '7px', fontWeight: 'normal', border: '1px solid #000', padding: '0 4px' }}>T.O.: {timeouts}</span>
                     </div>
                     <div style={{ fontSize: '8px', textAlign: 'right' }}>
                         <span>Entrenador: {coachLine}</span>

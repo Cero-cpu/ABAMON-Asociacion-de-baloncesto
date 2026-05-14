@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
 
 const COLUMN_COUNT = 12;
 
@@ -8,7 +9,24 @@ export default function SplashScreen({ onComplete }) {
     const [progress, setProgress] = useState(0);
 
     useEffect(() => {
-        // Simular progreso de carga
+        // 1. Despertar el backend (Warm-up)
+        const wakeUpBackend = async () => {
+            const apiUrl = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:8000/api' : '/api');
+            try {
+                // Hacemos múltiples pings para despertar backend y DB (Postgres en Render)
+                await Promise.all([
+                    axios.get(apiUrl.replace('/api', '/'), { timeout: 15000 }),
+                    axios.get(`${apiUrl}/stats/global`, { timeout: 15000 })
+                ]);
+                console.log("Backend y Base de Datos despertados exitosamente");
+            } catch (err) {
+                console.log("Backend despertando progresivamente...");
+            }
+        };
+
+        wakeUpBackend();
+
+        // 2. Simular progreso de carga (Visual)
         const interval = setInterval(() => {
             setProgress(prev => {
                 if (prev >= 100) {
@@ -17,12 +35,13 @@ export default function SplashScreen({ onComplete }) {
                 }
                 return prev + 1;
             });
-        }, 25);
+        }, 30);
 
+        // 3. Finalizar Splash
         const timer = setTimeout(() => {
             setIsFinishing(true);
             setTimeout(onComplete, 1200);
-        }, 3800);
+        }, 4500); // Aumentamos ligeramente el tiempo para dar margen al backend
 
         return () => {
             clearInterval(interval);
@@ -41,7 +60,7 @@ export default function SplashScreen({ onComplete }) {
                 >
                     {/* Fondo con profundidad cinemática */}
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,#1a1a1a_0%,#000_100%)]" />
-                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 contrast-150 brightness-100 pointer-events-none" />
+                    <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')] opacity-20 contrast-150 brightness-100 pointer-events-none" />
 
                     {/* Columnas Decorativas (Efecto Glassmorphism 3D) */}
                     <div className="flex gap-[2px] w-full h-screen px-[1px] relative" style={{ perspective: '2000px' }}>
@@ -86,7 +105,7 @@ export default function SplashScreen({ onComplete }) {
                             transition={{ delay: 1, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
                             className="text-center"
                         >
-                            <h1 className="text-8xl md:text-9xl font-black tracking-[-0.05em] text-white flex flex-col leading-[0.8]">
+                            <h1 className="text-6xl sm:text-8xl md:text-9xl font-black tracking-[-0.05em] text-white flex flex-col leading-[0.8]">
                                 <span className="block opacity-90">FIBA</span>
                                 <span className="bg-gradient-to-b from-blue-400 to-blue-600 bg-clip-text text-transparent">STATS</span>
                             </h1>

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { usePartido } from '../hooks/usePartido'
 import HistoryControls from '../components/HistoryControls'
+import ConnectionBadge from '../components/ConnectionBadge'
 
 // Componentes Memoizados para alto rendimiento
 const StatItem = memo(({ label, value, color }) => (
@@ -103,6 +104,7 @@ export default function ElectronicoPage() {
   const [inputId, setInputId] = useState('')
   const [partidoId, setPartidoId] = useState(null)
   const [jugadorSel, setJugadorSel] = useState(null)
+  const [busy, setBusy] = useState(false)
   const [equipoSel, setEquipoSel] = useState(null)
   const [msg, setMsg] = useState(null)
   const [tab, setTab] = useState('local')
@@ -117,14 +119,16 @@ export default function ElectronicoPage() {
   const {
     partido, equipoLocal, equipoVisitante,
     jugadoresLocal, jugadoresVisitante, stats,
-    tiempo_restante, reloj_activo, parciales,
-    refreshPartido, refreshData, refreshJugadores
+    tiempo_restante, reloj_activo, parciales, loading,
+    refreshPartido, refreshStats, refreshJugadores
   } = usePartido(partidoId, { pollInterval: 10000, withParciales: true })
 
   // Optimización: Mapa de estadísticas para búsqueda O(1)
   const statsMap = useMemo(() => {
     const map = {}
-    stats.forEach(s => { map[s.jugador_id] = s })
+    if (Array.isArray(stats)) {
+      stats.forEach(s => { map[s.jugador_id] = s })
+    }
     return map
   }, [stats])
 
@@ -169,17 +173,15 @@ export default function ElectronicoPage() {
     try {
       await registrarEvento({
         partido_id: parseInt(partidoId),
-        jugador_id: null,
+        jugador_id: 0,
         equipo_id: teamId,
         tipo: 'TIMEOUT',
         cuarto: partido.cuarto_actual,
         tiempo: formatTime(tiempo_restante)
       })
       refreshPartido()
-      flash(`TIEMPO MUERTO REGISTRADO`, '#0078D4')
-    } catch (e) {
-      flash('ERROR AL REGISTRAR TIMEOUT', '#f43f5e')
-    }
+      flash('TIEMPO FUERA REGISTRADO', '#0078D4')
+    } catch (e) { flash('ERROR', '#f43f5e') }
   }
 
   const handleAvanzarIntervalo = async () => {
@@ -189,7 +191,7 @@ export default function ElectronicoPage() {
     const p1 = parciales.find(p => p.cuarto === q && p.intervalo === 1)
     const p2 = parciales.find(p => p.cuarto === q && p.intervalo === 2)
 
-    const parcialesPrevios = parciales.filter(p => p.cuarto < q)
+    const parcialesPrevios = (parciales || []).filter(p => p.cuarto < q)
     const sumaPreviosLocal = parcialesPrevios.reduce((acc, p) => acc + (p.pts_local || 0), 0)
     const sumaPreviosVis = parcialesPrevios.reduce((acc, p) => acc + (p.pts_visitante || 0), 0)
 
@@ -198,8 +200,6 @@ export default function ElectronicoPage() {
 
     try {
       if (!p1) {
-        // Guardar intervalo 1 (5 min)
-        if (!confirm(`¿GUARDAR PUNTUACIÓN DE MITAD DEL CUARTO (${q})?`)) return
         await guardarParcial(partidoId, { cuarto: q, intervalo: 1, pts_local: ptsCuartoLocal, pts_visitante: ptsCuartoVis })
         flash(`PUNTOS MITAD C${q} REGISTRADOS`, '#0078D4')
       } else if (!p2) {
@@ -241,17 +241,23 @@ export default function ElectronicoPage() {
 
   const handleAccion = async (accion) => {
     if (!jugadorSel) { flash('SELECCIONE_ACTIVO_PRIMERO', '#fbbf24'); return }
-    await registrarEvento({
-      partido_id: parseInt(partidoId),
-      jugador_id: jugadorSel.id,
-      equipo_id: equipoSel,
-      tipo: accion.tipo,
-      cuarto: partido.cuarto_actual,
-      tiempo: formatTime(tiempo_restante)
-    })
-    refreshStats()
-    refreshPartido()
-    flash(`${accion.label} COMPLETADO`, accion.color)
+    try {
+      setBusy(true)
+      await registrarEvento({
+        partido_id: parseInt(partidoId),
+        jugador_id: jugadorSel.id,
+        equipo_id: equipoSel,
+        tipo: accion.tipo,
+        cuarto: partido.cuarto_actual,
+        tiempo: formatTime(tiempo_restante)
+      })
+      await Promise.all([refreshStats(), refreshPartido()])
+      flash(`${accion.label} COMPLETADO`, accion.color)
+    } catch (e) {
+      flash('ERROR AL REGISTRAR', '#f43f5e')
+    } finally {
+      setBusy(false)
+    }
   }
 
   const handleDeshacer = async () => {
@@ -357,11 +363,11 @@ export default function ElectronicoPage() {
   }
 
   return (
-    <div className="h-screen bg-[#0a0a0a] flex flex-col font-sans overflow-hidden text-white relative">
+    <div className="min-h-screen bg-[#0a0a0a] flex flex-col font-sans text-white relative">
       <div className="scanline" />
 
       {/* ── TOOLBAR SUPERIOR (FIRMWARE STYLE) ── */}
-      <header className="h-10 bg-[#161616] border-b border-white/5 flex items-center px-6 justify-between flex-shrink-0 z-50">
+      <header className="min-h-10 bg-[#161616] border-b border-white/5 flex flex-wrap items-center px-4 sm:px-6 justify-between flex-shrink-0 z-50 py-2 sm:py-0 gap-4">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
             <Shield size={14} className="text-[#0078D4]" />
@@ -411,28 +417,18 @@ export default function ElectronicoPage() {
           )}
         </div>
 
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-2">
-            <Cpu size={12} className="text-[#444]" />
-            <span className="text-[9px] font-bold text-[#444] tracking-widest uppercase font-mono">ID PARTIDO: {partido.id}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[9px] font-black text-[#555] uppercase tracking-widest">CONEXIÓN ESTABLE</span>
-          </div>
-        </div>
       </header>
 
       {/* ── SCORE BANNER ── */}
-      <div className="h-24 bg-[#111] border-b border-white/5 flex items-center justify-between px-10 flex-shrink-0">
+      <div className="min-h-24 bg-[#111] border-b border-white/5 flex flex-col md:flex-row items-center justify-between px-4 sm:px-10 flex-shrink-0 py-4 md:py-0 gap-6">
 
         {/* Local Team Info */}
         <div className="flex-1 flex items-center gap-6 overflow-hidden">
           <div className="w-3 h-12" style={{ backgroundColor: equipoLocal?.color_principal }} />
           <div className="overflow-hidden">
-            <h2 className="text-2xl font-black italic uppercase tracking-tighter truncate">{equipoLocal?.nombre}</h2>
-            <div className="flex items-center gap-6 mt-1">
-              <p className="text-[9px] font-black text-[#444] tracking-widest uppercase">EQUIPO LOCAL</p>
+            <h2 className="text-[clamp(1.2rem,3vw,1.5rem)] md:text-2xl font-black italic uppercase tracking-tighter truncate">{equipoLocal?.nombre}</h2>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-1">
+              <p className="text-[9px] font-black text-[#444] tracking-widest uppercase">LOCAL</p>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] font-black text-white/40">FALTAS:</span>
@@ -487,16 +483,16 @@ export default function ElectronicoPage() {
           {editManual ? (
             <input
               type="number"
-              className="w-28 h-16 bg-black/60 border border-[#0078D4] text-white font-oswald font-black text-5xl text-center italic ml-auto mr-10 tabular-nums"
+              className="w-20 sm:w-28 h-12 sm:h-16 bg-black/60 border border-[#0078D4] text-white font-oswald font-black text-3xl sm:text-5xl text-center italic ml-auto sm:mr-10 tabular-nums"
               value={fManual.pts_local}
               onChange={e => setFManual({ ...fManual, pts_local: parseInt(e.target.value) || 0 })}
             />
           ) : (
-            <div className="text-6xl font-oswald font-black text-white italic ml-auto mr-10 tabular-nums">{partido.pts_local}</div>
+            <div className="text-4xl sm:text-6xl font-oswald font-black text-white italic ml-auto sm:mr-10 tabular-nums">{partido.pts_local}</div>
           )}
         </div>
 
-        <div className="flex flex-col items-center gap-2 min-w-[340px] border-x border-white/5 h-full justify-center bg-white/[0.01]">
+        <div className="flex flex-col items-center gap-2 min-w-full md:min-w-[340px] md:border-x border-white/5 h-full justify-center bg-white/[0.01] py-4 md:py-0">
           {/* Cronómetro y Periodo */}
           <div className="flex items-center gap-6">
             <div className="flex flex-col items-center">
@@ -508,7 +504,7 @@ export default function ElectronicoPage() {
                 >
                   {reloj_activo ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
                 </button>
-                <div className="bg-black/40 border border-white/5 text-white font-oswald text-4xl text-center w-32 h-12 flex items-center justify-center tabular-nums shadow-inner">
+                <div className="bg-black/40 border border-white/5 text-white font-oswald text-[clamp(1.5rem,5vw,2.25rem)] text-center w-24 sm:w-32 h-10 sm:h-12 flex items-center justify-center tabular-nums shadow-inner">
                   <ClockDisplay 
                     tiempo={tiempo_restante} 
                     activo={reloj_activo} 
@@ -588,8 +584,8 @@ export default function ElectronicoPage() {
         <div className="flex-1 flex items-center gap-6 overflow-hidden flex-row-reverse">
           <div className="w-3 h-12" style={{ backgroundColor: equipoVisitante?.color_principal }} />
           <div className="overflow-hidden text-right">
-            <h2 className="text-2xl font-black italic uppercase tracking-tighter truncate">{equipoVisitante?.nombre}</h2>
-            <div className="flex items-center justify-end gap-6 mt-1">
+            <h2 className="text-[clamp(1.2rem,3vw,1.5rem)] md:text-2xl font-black italic uppercase tracking-tighter truncate">{equipoVisitante?.nombre}</h2>
+            <div className="flex flex-wrap items-center justify-end gap-x-6 gap-y-2 mt-1">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   {editManual ? (
@@ -656,10 +652,10 @@ export default function ElectronicoPage() {
       </div>
 
       {/* ── CORE LAYOUT ── */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
 
         {/* SIDEBAR: ACTIVE UNITS */}
-        <aside className="w-72 bg-[#121212] border-r border-white/5 flex flex-col flex-shrink-0">
+        <aside className="w-full lg:w-72 bg-[#121212] border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col flex-shrink-0 max-h-64 lg:max-h-none">
           <div className="p-1 flex bg-black border-b border-white/5">
             {['local', 'visitante'].map(t => (
               <button key={t} onClick={() => setTab(t)} className={`flex-1 py-2 text-[9px] font-black uppercase tracking-widest ${tab === t ? 'bg-[#1a1a1a] text-[#0078D4]' : 'text-[#444]'}`}>
@@ -668,7 +664,7 @@ export default function ElectronicoPage() {
             ))}
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
-            {jugadores.map(j => (
+            {Array.isArray(jugadores) && jugadores.map(j => (
               <PlayerRow 
                 key={j.id} 
                 j={j} 
@@ -681,22 +677,22 @@ export default function ElectronicoPage() {
         </aside>
 
         {/* MAIN DECK: ACTION MATRIX */}
-        <main className="flex-1 flex flex-col p-6 gap-6 relative">
+        <main className="flex-1 flex flex-col p-4 sm:p-6 gap-6 relative overflow-y-auto">
 
           {/* CURRENT ACTIVE FOCUS */}
           <div className="h-24 bg-[#111] border border-white/5 flex items-center px-8 justify-between relative overflow-hidden flex-shrink-0">
             <div className="absolute top-0 right-0 w-32 h-full bg-[#0078D4] blur-[80px] opacity-[0.03]" />
             {!jugadorSel ? (
-              <span className="text-[10px] font-black text-[#333] tracking-[0.6em] italic animate-pulse">POR FAVOR, SELECCIONA UN JUGADOR</span>
+              <span className="text-[10px] font-black text-[#333] tracking-[0.6em] italic animate-pulse text-center">SELECCIONA UN JUGADOR</span>
             ) : (
               <>
-                <div className="flex items-center gap-6">
-                  <h3 className="text-4xl font-oswald font-black italic text-white tracking-widest">
-                    <span className="text-[#0078D4] mr-4">#{jugadorSel.numero}</span>
+                <div className="flex items-center gap-4 sm:gap-6 overflow-hidden">
+                  <h3 className="text-xl sm:text-4xl font-oswald font-black italic text-white tracking-widest truncate">
+                    <span className="text-[#0078D4] mr-2 sm:mr-4">#{jugadorSel.numero}</span>
                     {jugadorSel.nombre.toUpperCase()}
                   </h3>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1 overflow-x-auto no-scrollbar py-2">
                   {STATS_MAP.map(s => (
                     <StatItem 
                       key={s.key} 
@@ -711,7 +707,7 @@ export default function ElectronicoPage() {
           </div>
 
           {/* ACTION GRID - Grouped for Logic */}
-          <div className="flex-1 grid grid-cols-4 xl:grid-cols-6 gap-2 content-start overflow-y-auto custom-scrollbar pr-2">
+          <div className="flex-1 grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 xl:grid-cols-6 gap-2 content-start overflow-y-visible pr-2 pb-10">
             {ACCIONES.map(a => (
               <ActionButton 
                 key={a.tipo} 
@@ -740,6 +736,8 @@ export default function ElectronicoPage() {
       {/* ── STATUS BAR ── */}
       <footer className="h-8 bg-[#161616] border-t border-white/5 flex items-center px-10 justify-between flex-shrink-0 z-50">
         <div className="flex gap-8 items-center">
+          <ConnectionBadge />
+          <div className="h-4 w-px bg-white/5" />
           <div className="flex items-center gap-2 text-[9px] font-bold text-[#444]">
             <Database size={12} />
             <span>DATABASE: READ/WRITE</span>

@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useMemo, memo } from 'react'
+import React, { useMemo, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSearchParams, Link } from 'react-router-dom'
 import { Shield, Radio, Clock } from 'lucide-react'
 import { usePartido } from '../hooks/usePartido'
 import AnimatedNumber from '../components/AnimatedNumber'
-import { getResumenPartido } from '../services/api'
 import { pct, calculateTeamTotals, getScoreToInterval } from '../utils/stats'
 
 const MeshBackground = memo(() => (
@@ -14,7 +13,7 @@ const MeshBackground = memo(() => (
   </div>
 ))
 
-const PlayerRow = memo(({ player, stats, colorPrincipal, index }) => {
+const PlayerRow = memo(({ player, stats, colorPrincipal }) => {
   const tc_c = (stats.t2_convertidos || 0) + (stats.t3_convertidos || 0)
   const tc_i = (stats.t2_intentados || 0) + (stats.t3_intentados || 0)
   const esNJ = stats.nj === 1
@@ -104,19 +103,19 @@ const TeamTable = memo(({ equipo, jugadores, getStats, puntos, colorAccent, lado
     <section className="max-w-[1780px] mx-auto w-full">
       {/* Header equipo */}
       <div
-        className={`flex items-center justify-between h-20 px-10 mb-0 ${isLeft ? 'border-l-[8px]' : 'border-r-[8px] flex-row-reverse'}`}
+        className={`flex items-center justify-between min-h-20 px-4 sm:px-10 mb-0 py-4 sm:py-0 ${isLeft ? 'border-l-[8px]' : 'border-r-[8px] flex-row-reverse'}`}
         style={{
           borderColor: colorAccent,
           background: `linear-gradient(${isLeft ? 'to right' : 'to left'}, ${colorAccent}22, transparent)`
         }}
       >
-        <div className={`flex items-center gap-6 ${isLeft ? '' : 'flex-row-reverse'}`}>
-          <Shield size={36} style={{ color: colorAccent, filter: `drop-shadow(0 0 12px ${colorAccent}88)` }} />
-          <h2 className="text-4xl font-black italic uppercase tracking-tighter leading-none text-white">
+        <div className={`flex items-center gap-4 sm:gap-6 ${isLeft ? '' : 'flex-row-reverse'}`}>
+          <Shield size={24} className="sm:w-[36px] sm:h-[36px]" style={{ color: colorAccent, filter: `drop-shadow(0 0 12px ${colorAccent}88)` }} />
+          <h2 className="text-xl sm:text-4xl font-black italic uppercase tracking-tighter leading-none text-white">
             {equipo?.nombre}
           </h2>
         </div>
-        <div className="text-7xl font-black text-white italic tabular-nums" style={{ textShadow: `0 0 40px ${colorAccent}66` }}>
+        <div className="text-4xl sm:text-7xl font-black text-white italic tabular-nums" style={{ textShadow: `0 0 40px ${colorAccent}66` }}>
           <AnimatedNumber value={puntos} />
         </div>
       </div>
@@ -161,7 +160,7 @@ const TeamTable = memo(({ equipo, jugadores, getStats, puntos, colorAccent, lado
               </tr>
             </thead>
             <tbody>
-              {jugadores.map((j, i) => (
+              {(Array.isArray(jugadores) ? jugadores : []).map((j, i) => (
                 <PlayerRow key={j.id} player={j} stats={getStats(j.id)} colorPrincipal={colorAccent} index={i} />
               ))}
               {/* Fila totales */}
@@ -203,7 +202,7 @@ export default function ScoreboardPage() {
   const {
     partido, equipoLocal, equipoVisitante,
     jugadoresLocal, jugadoresVisitante,
-    getStats, parciales, stats,
+    getStats, parciales,
     tiempo_restante // Usar el reloj optimizado
   } = usePartido(id, {
     pollInterval: 3000,
@@ -225,29 +224,29 @@ export default function ScoreboardPage() {
   const colorVisitante = equipoVisitante?.color_principal || '#ef4444'
 
   return (
-    <div className="h-screen bg-[#020202] flex flex-col font-sans text-white relative overflow-hidden">
+    <div className="min-h-screen bg-[#020202] flex flex-col font-sans text-white relative">
       <MeshBackground />
 
       {/* Header */}
-      <header className="h-[10vh] bg-black/60 border-b border-white/[0.08] px-12 flex items-center justify-between z-40 relative backdrop-blur-md flex-shrink-0">
+      <header className="min-h-[10vh] bg-black/60 border-b border-white/[0.08] px-4 sm:px-12 flex flex-col md:flex-row items-center justify-between z-40 relative backdrop-blur-md flex-shrink-0 py-4 md:py-0 gap-6">
         <h1 className="text-3xl font-black italic tracking-tighter uppercase">FIBA <span className="text-[#0078D4]">STATS</span></h1>
 
-        <div className="flex items-center gap-10 bg-white/[0.03] px-10 py-2 border border-white/[0.08]">
+        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-10 bg-white/[0.03] px-4 sm:px-10 py-2 border border-white/[0.08]">
           <div className="flex flex-col items-center">
             <span className="text-[9px] font-black text-white/20 tracking-[0.4em] uppercase mb-0.5">PER</span>
-            <div className="text-4xl font-black text-[#0078D4] italic leading-none">{partido.cuarto_actual}</div>
+            <div className="text-2xl sm:text-4xl font-black text-[#0078D4] italic leading-none">{partido.cuarto_actual}</div>
           </div>
-          <div className="h-10 w-px bg-white/10" />
+          <div className="h-8 sm:h-10 w-px bg-white/10" />
           <div className="flex flex-col items-center">
             <span className="text-[9px] font-black text-[#FFB900] tracking-[0.5em] uppercase mb-0.5 flex items-center gap-2">
               <Clock size={11} /> CLOCK
             </span>
-            <div className="text-5xl font-black text-white tracking-wide leading-none tabular-nums">
+            <div className="text-3xl sm:text-5xl font-black text-white tracking-wide leading-none tabular-nums">
               {Math.floor(tiempo_restante / 60)}:{(tiempo_restante % 60).toString().padStart(2, '0')}
             </div>
           </div>
-          <div className="h-10 w-px bg-white/10" />
-          <div className="flex flex-col items-center">
+          <div className="hidden sm:block h-10 w-px bg-white/10" />
+          <div className="hidden sm:flex flex-col items-center">
             <span className="text-[9px] font-black text-white/20 tracking-widest uppercase mb-0.5">ID</span>
             <div className="text-lg font-mono font-black text-white/10">#{partido.id}</div>
           </div>
@@ -301,7 +300,7 @@ export default function ScoreboardPage() {
         />
       </main>
 
-      <footer className="h-10 bg-black border-t border-white/[0.06] px-12 flex items-center justify-between z-50 text-[10px] font-black uppercase text-white/15 tracking-widest">
+      <footer className="min-h-10 bg-black border-t border-white/[0.06] px-4 sm:px-12 flex flex-wrap items-center justify-between z-50 text-[10px] font-black uppercase text-white/15 tracking-widest py-2 sm:py-0 gap-4">
         <span>FIBA Stats System</span>
         <span>{partido.estado === 'en_juego' ? '● En juego' : partido.estado === 'finalizado' ? 'Final' : 'Pendiente'}</span>
       </footer>

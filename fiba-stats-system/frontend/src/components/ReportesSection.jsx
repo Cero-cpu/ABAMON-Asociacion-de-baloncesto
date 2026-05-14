@@ -27,9 +27,12 @@ export default function ReportesSection({ equipos, partidos }) {
     const [cargando, setCargando] = useState(false)
     const [error, setError] = useState(null)
 
-    const partidosFiltrados = partidos.filter(p => {
-        const local = equipos.find(e => e.id === p.local_id)?.nombre || ''
-        const vis = equipos.find(e => e.id === p.visitante_id)?.nombre || ''
+    const eqList = Array.isArray(equipos) ? equipos : []
+    const ptList = Array.isArray(partidos) ? partidos : []
+
+    const partidosFiltrados = ptList.filter(p => {
+        const local = eqList.find(e => e.id === p.local_id)?.nombre || ''
+        const vis = eqList.find(e => e.id === p.visitante_id)?.nombre || ''
         return local.toLowerCase().includes(busqueda.toLowerCase()) ||
             vis.toLowerCase().includes(busqueda.toLowerCase())
     })
@@ -64,10 +67,10 @@ export default function ReportesSection({ equipos, partidos }) {
 
             {/* Métricas */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                <StatCard label="Equipos_Inscritos" value={equipos.length} sub="BASE DE DATOS" icon={Database} />
-                <StatCard label="Total_Encuentros" value={partidos.length} sub="PARTIDOS REGISTRADOS" icon={Activity} color="text-green-500" />
-                <StatCard label="Finalizados" value={partidos.filter(p => p.estado === 'finalizado').length} sub="LISTOS PARA IMPRIMIR" icon={BarChart3} color="text-purple-500" />
-                <StatCard label="En_Cancha" value={partidos.filter(p => p.estado === 'en_curso').length} sub="ACTUALMENTE EN JUEGO" icon={ShieldCheck} color="text-amber-500" />
+                <StatCard label="Equipos_Inscritos" value={eqList.length} sub="BASE DE DATOS" icon={Database} />
+                <StatCard label="Total_Encuentros" value={ptList.length} sub="PARTIDOS REGISTRADOS" icon={Activity} color="text-green-500" />
+                <StatCard label="Finalizados" value={ptList.filter(p => p.estado === 'finalizado').length} sub="LISTOS PARA IMPRIMIR" icon={BarChart3} color="text-purple-500" />
+                <StatCard label="En_Cancha" value={ptList.filter(p => p.estado === 'en_curso').length} sub="ACTUALMENTE EN JUEGO" icon={ShieldCheck} color="text-amber-500" />
             </div>
 
             {/* Lista de partidos */}
@@ -88,8 +91,8 @@ export default function ReportesSection({ equipos, partidos }) {
                         </p>
                     )}
                     {partidosFiltrados.map(p => {
-                        const local = equipos.find(e => e.id === p.local_id)
-                        const vis = equipos.find(e => e.id === p.visitante_id)
+                        const local = eqList.find(e => e.id === p.local_id)
+                        const vis = eqList.find(e => e.id === p.visitante_id)
                         return (
                             <div key={p.id} className="flex items-center justify-between px-6 py-4 hover:bg-white/[0.02] transition-colors gap-4">
                                 <div className="flex items-center gap-4 overflow-hidden">

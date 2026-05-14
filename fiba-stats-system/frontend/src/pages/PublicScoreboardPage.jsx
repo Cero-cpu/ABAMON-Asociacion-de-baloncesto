@@ -19,10 +19,10 @@ const TeamPanel = memo(({ nombre, puntos, color = '#0078D4', side = 'left' }) =>
         style={{ background: `radial-gradient(ellipse at ${isLeft ? '0% 100%' : '100% 100%'}, ${color}18 0%, transparent 65%)` }}
       />
       <div className={`relative z-10 ${isLeft ? 'text-left' : 'text-right'}`}>
-        <p className="text-[11px] font-black tracking-[0.5em] text-white/20 uppercase mb-2">
+        <p className="text-[10px] sm:text-[11px] font-black tracking-[0.5em] text-white/20 uppercase mb-2">
           {isLeft ? 'LOCAL' : 'VISITANTE'}
         </p>
-        <h2 className="text-[3.8vw] font-black uppercase leading-none tracking-tight" style={{ color }}>
+        <h2 className="text-[24px] sm:text-[3.8vw] font-black uppercase leading-none tracking-tight" style={{ color }}>
           {nombre}
         </h2>
       </div>
@@ -121,16 +121,16 @@ const ParcialesBar = memo(({ parciales, partido }) => {
 
   return (
     <div className="w-full border-t border-white/[0.08] bg-black/60 backdrop-blur-xl relative z-20">
-      <div className="w-full flex items-stretch divide-x divide-white/[0.08]">
-        <div className="flex flex-col justify-center px-[3vw] py-[1.5vh] min-w-[12vw]">
-          <span className="text-[0.7vw] font-black tracking-[0.6em] text-white/30 uppercase">INTERVALOS</span>
-          <span className="text-[0.55vw] font-bold text-white/10 uppercase mt-0.5">FIBA STANDARDS</span>
+      <div className="w-full flex items-stretch divide-x divide-white/[0.08] overflow-x-auto no-scrollbar">
+        <div className="flex flex-col justify-center px-6 sm:px-[3vw] py-4 sm:py-[1.5vh] min-w-[120px] sm:min-w-[12vw]">
+          <span className="text-[10px] sm:text-[0.7vw] font-black tracking-[0.6em] text-white/30 uppercase">INTERVALOS</span>
+          <span className="text-[8px] sm:text-[0.55vw] font-bold text-white/10 uppercase mt-0.5">FIBA STANDARDS</span>
         </div>
 
         {quarters.map(({ q, local, visitor, isActive, hasData }) => (
           <div
             key={q}
-            className={`flex-1 flex flex-col items-center justify-center py-[2vh] transition-all duration-500 relative ${isActive ? 'bg-white/[0.06] shadow-[inset_0_0_40px_rgba(255,255,255,0.03)]' : ''
+            className={`flex-1 flex flex-col items-center justify-center py-4 sm:py-[2vh] min-w-[100px] sm:min-w-0 transition-all duration-500 relative ${isActive ? 'bg-white/[0.06] shadow-[inset_0_0_40px_rgba(255,255,255,0.03)]' : ''
               }`}
           >
             {isActive && (
@@ -139,29 +139,29 @@ const ParcialesBar = memo(({ parciales, partido }) => {
                 className="absolute inset-x-0 top-0 h-1 bg-[#0078D4] shadow-[0_0_15px_#0078D4]"
               />
             )}
-            <span className={`text-[0.8vw] font-black tracking-[0.4em] uppercase mb-[1vh] ${isActive ? 'text-[#0078D4] drop-shadow-[0_0_8px_rgba(0,120,212,0.4)]' : 'text-white/20'
+            <span className={`text-[10px] sm:text-[0.8vw] font-black tracking-[0.4em] uppercase mb-2 sm:mb-[1vh] ${isActive ? 'text-[#0078D4] drop-shadow-[0_0_8px_rgba(0,120,212,0.4)]' : 'text-white/20'
               }`}>
-              CUARTO {q}
+              C{q}
             </span>
-            <div className={`flex items-center gap-[1.5vw] font-black tabular-nums transition-scale duration-300 ${isActive ? 'scale-110' : ''}`}>
-              <span className={`text-[2.2vw] ${isActive || hasData ? 'text-white' : 'text-white/10'}`}>
+            <div className={`flex items-center gap-4 sm:gap-[1.5vw] font-black tabular-nums transition-scale duration-300 ${isActive ? 'scale-110' : ''}`}>
+              <span className={`text-[20px] sm:text-[2.2vw] ${isActive || hasData ? 'text-white' : 'text-white/10'}`}>
                 {local}
               </span>
-              <span className="text-[1.2vw] text-white/10 font-light">—</span>
-              <span className={`text-[2.2vw] ${isActive || hasData ? 'text-white' : 'text-white/10'}`}>
+              <span className="text-[14px] sm:text-[1.2vw] text-white/10 font-light">—</span>
+              <span className={`text-[20px] sm:text-[2.2vw] ${isActive || hasData ? 'text-white' : 'text-white/10'}`}>
                 {visitor}
               </span>
             </div>
           </div>
         ))}
 
-        <div className="flex flex-col items-center justify-center py-[2vh] px-[4vw] bg-white/[0.04] border-l-2 border-white/5 relative overflow-hidden group">
+        <div className="flex flex-col items-center justify-center py-4 sm:py-[2vh] px-8 sm:px-[4vw] bg-white/[0.04] border-l-2 border-white/5 relative overflow-hidden group min-w-[120px] sm:min-w-0">
           <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
-          <span className="text-[0.8vw] font-black tracking-[0.8em] text-white/40 uppercase mb-[1vh] relative z-10">TOTAL</span>
-          <div className="flex items-center gap-[1.5vw] font-black tabular-nums text-white relative z-10">
-            <span className="text-[2.5vw] drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">{totalLocal}</span>
-            <span className="text-[1.5vw] text-white/20 font-thin">—</span>
-            <span className="text-[2.5vw] drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">{totalVisitor}</span>
+          <span className="text-[clamp(10px,1.5vw,14px)] font-black tracking-[0.8em] text-white/40 uppercase mb-2 relative z-10">TOTAL</span>
+          <div className="flex items-center gap-4 sm:gap-[1.5vw] font-black tabular-nums text-white relative z-10">
+            <span className="text-[clamp(24px,5vw,5rem)] drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">{totalLocal}</span>
+            <span className="text-[clamp(14px,3vw,3rem)] text-white/20 font-thin">—</span>
+            <span className="text-[clamp(24px,5vw,5rem)] drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">{totalVisitor}</span>
           </div>
         </div>
       </div>
@@ -191,24 +191,24 @@ export default function PublicScoreboardPage() {
   const colorVisitante = equipoVisitante?.color_principal || '#ef4444'
 
   return (
-    <div className="h-screen w-screen bg-[#080808] flex flex-col font-sans text-white overflow-hidden select-none">
-      <main className="flex-1 flex items-stretch overflow-hidden">
-        <motion.div className="flex-1 flex" initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease: 'easeOut' }}>
+    <div className="min-h-screen w-full bg-[#080808] flex flex-col font-sans text-white">
+      <main className="flex-1 flex flex-col md:flex-row items-stretch overflow-hidden">
+        <motion.div className="flex-1 flex min-h-[30vh] md:min-h-0" initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease: 'easeOut' }}>
           <TeamPanel nombre={equipoLocal?.nombre || 'LOCAL'} puntos={partido.pts_local} color={colorLocal} side="left" />
         </motion.div>
-        <div className="w-px bg-white/[0.05] self-stretch" />
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
+        <div className="h-px md:h-auto md:w-px bg-white/[0.05] self-stretch" />
+        <motion.div className="py-6 md:py-0" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
           <CenterHUD partido={partido} />
         </motion.div>
-        <div className="w-px bg-white/[0.05] self-stretch" />
-        <motion.div className="flex-1 flex flex-row-reverse" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease: 'easeOut' }}>
+        <div className="h-px md:h-auto md:w-px bg-white/[0.05] self-stretch" />
+        <motion.div className="flex-1 flex flex-row-reverse min-h-[30vh] md:min-h-0" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease: 'easeOut' }}>
           <TeamPanel nombre={equipoVisitante?.nombre || 'VISITANTE'} puntos={partido.pts_visitante} color={colorVisitante} side="right" />
         </motion.div>
       </main>
       <ParcialesBar parciales={parciales} partido={partido} />
-      <footer className="h-8 bg-black/40 border-t border-white/[0.04] flex items-center justify-between px-10">
+      <footer className="min-h-8 bg-black/40 border-t border-white/[0.04] flex flex-wrap items-center justify-between px-4 sm:px-10 py-2 sm:py-0 gap-4">
         <span className="text-[8px] font-black tracking-[0.5em] text-white/10 uppercase">FIBA Stats System</span>
-        {partido.cancha && <span className="text-[8px] font-black tracking-[0.4em] text-white/10 uppercase">{partido.cancha}</span>}
+        {partido.cancha && <span className="text-[8px] font-black tracking-[0.4em] text-white/10 uppercase text-center">{partido.cancha}</span>}
         <span className="text-[8px] font-black tracking-[0.5em] text-white/10 uppercase">
           {partido.estado === 'en_juego' ? '● En juego' : partido.estado === 'finalizado' ? 'Finalizado' : 'Pendiente'}
         </span>

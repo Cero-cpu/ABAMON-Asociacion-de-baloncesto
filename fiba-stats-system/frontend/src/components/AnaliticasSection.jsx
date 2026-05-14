@@ -68,7 +68,7 @@ export default function AnaliticasSection() {
                 getRachas()
             ]);
             setStats(statsRes.data);
-            setRachas(rachasRes.data);
+            setRachas(Array.isArray(rachasRes.data) ? rachasRes.data : []);
         } catch (error) {
             console.error("Error fetching analytics data:", error);
         } finally {
@@ -151,7 +151,7 @@ export default function AnaliticasSection() {
                     </div>
 
                     <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar space-y-8">
-                        {rachas.length > 0 ? rachas.map((item, idx) => {
+                        {(Array.isArray(rachas) ? rachas : []).length > 0 ? (Array.isArray(rachas) ? rachas : []).map((item, idx) => {
                             const isHot = item.streak >= 3;
                             const barColor = isHot ? "#107C10" : item.streak >= 1 ? "#0078D4" : "#333";
 

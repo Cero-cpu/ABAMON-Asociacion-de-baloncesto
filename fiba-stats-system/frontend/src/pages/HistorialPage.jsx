@@ -102,7 +102,7 @@ export default function HistorialPage() {
     return () => document.removeEventListener('contextmenu', handleContextMenu)
   }, [])
 
-  const filteredPartidos = partidos.filter(p => {
+  const filteredPartidos = (Array.isArray(partidos) ? partidos : []).filter(p => {
     if (filter === 'todos') return true
     return p.estado === filter
   })

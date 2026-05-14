@@ -15,6 +15,7 @@ import ReportesSection from '../components/ReportesSection'
 import AnaliticasSection from '../components/AnaliticasSection'
 import { getResumenPartido, getParciales, getEquipo } from '../services/api'
 import { Link } from 'react-router-dom'
+import ConnectionBadge from '../components/ConnectionBadge'
 
 // --- Componentes de Alta Densidad ---
 
@@ -45,6 +46,8 @@ export default function AdminPage() {
   const [jugadores, setJugadores] = useState([])
   const [partidos, setPartidos] = useState([])
   const [equipoSel, setEquipoSel] = useState(null)
+  const [busqueda, setBusqueda] = useState('')
+  const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState('')
   const [modal, setModal] = useState({ show: false, title: '', msg: '', onConfirm: null })
 
@@ -60,9 +63,9 @@ export default function AdminPage() {
 
   // Estado para impresión eliminado
 
-  const cargarEquipos = async () => { try { const r = await getEquipos(); setEquipos(r.data) } catch (err) { console.error(err) } }
-  const cargarPartidos = async () => { try { const r = await getPartidos(); setPartidos(r.data) } catch (err) { console.error(err) } }
-  const cargarJugadores = async (id) => { try { const r = await getJugadores(id); setJugadores(r.data) } catch (err) { console.error(err) } }
+  const cargarEquipos = async () => { try { const r = await getEquipos(); setEquipos(Array.isArray(r.data) ? r.data : []) } catch (err) { console.error(err); setEquipos([]) } }
+  const cargarPartidos = async () => { try { const r = await getPartidos(); setPartidos(Array.isArray(r.data) ? r.data : []) } catch (err) { console.error(err); setPartidos([]) } }
+  const cargarJugadores = async (id) => { try { const r = await getJugadores(id); setJugadores(Array.isArray(r.data) ? r.data : []) } catch (err) { console.error(err); setJugadores([]) } }
 
   useEffect(() => {
     const handleContextMenu = (e) => e.preventDefault()
@@ -100,13 +103,25 @@ export default function AdminPage() {
 
   const handleBorrarEquipo = (id) => setModal({
     show: true, title: 'Eliminar Equipo', msg: 'Esto eliminará todos los registros de jugadores y el historial de partidos. ¿Continuar?',
-    onConfirm: async () => { try { await eliminarEquipo(id); cargarEquipos(); flash('Equipo eliminado.') } catch (e) { flash('Error al eliminar.') } }
+    onConfirm: async () => { 
+      try { 
+        setBusy(true);
+        await eliminarEquipo(id); 
+        await cargarEquipos(); 
+        flash('Equipo eliminado.') 
+      } catch (e) { 
+        flash('Error al eliminar.') 
+      } finally {
+        setBusy(false);
+      }
+    }
   })
 
   const handleCrearJugador = async (e) => {
     e.preventDefault()
     if (!equipoSel || !fJ.nombre || !fJ.numero) return flash('Selección/Entrada requerida.')
     try {
+      setBusy(true)
       if (editIdJ) {
         await actualizarJugador(editIdJ, { ...fJ, equipo_id: equipoSel.id })
         flash('Jugador actualizado.')
@@ -116,8 +131,9 @@ export default function AdminPage() {
       }
       setFJ({ nombre: '', numero: '', posicion: 'PG', es_titular: false })
       setEditIdJ(null)
-      cargarJugadores(equipoSel.id)
+      await cargarJugadores(equipoSel.id)
     } catch (e) { flash('Error al procesar jugador.') }
+    finally { setBusy(false) }
   }
 
   const handleEditJugador = (j) => {
@@ -134,6 +150,7 @@ export default function AdminPage() {
     e.preventDefault()
     if (!fP.local_id || !fP.visitante_id) return flash('Selecciona ambos equipos.')
     try {
+      setBusy(true)
       if (editIdP) {
         await actualizarPartido(editIdP, fP)
         flash('Partido actualizado.')
@@ -143,8 +160,9 @@ export default function AdminPage() {
       }
       setFP({ local_id: '', visitante_id: '', competicion: '', cancha: '', arbitro_principal: '', arbitro_asistente1: '', arbitro_asistente2: '' })
       setEditIdP(null)
-      cargarPartidos()
+      await cargarPartidos()
     } catch (e) { flash('Error al procesar partido.') }
+    finally { setBusy(false) }
   }
 
   const handleEditPartido = (p) => {
@@ -168,7 +186,7 @@ export default function AdminPage() {
   // print handle removed
 
   return (
-    <div className="flex flex-col h-screen w-full bg-[#0a0a0a] text-white overflow-hidden">
+    <div className="flex flex-col min-h-screen w-full bg-[#0a0a0a] text-white">
       {/* 1. Navegación Top (Estilo Fluent) */}
       <header className="region-top-nav px-6">
         {/* Brand/Logo */}
@@ -176,25 +194,25 @@ export default function AdminPage() {
           <div className="w-8 h-8 rounded-sm bg-[#0078D4] flex items-center justify-center shadow-[0_0_15px_rgba(0,120,212,0.4)] flex-shrink-0">
             <Box size={18} className="text-white" />
           </div>
-          <div className="hidden sm:block">
-            <h2 className="text-[12px] font-black uppercase tracking-[0.3em] italic leading-none">FIBA <span className="text-[#0078D4]">OS</span></h2>
-            <p className="text-[8px] font-black text-[#444] tracking-[0.2em] mt-1">v3.0.5 MODO_EXPAND</p>
+          <div className="flex flex-col sm:block overflow-hidden">
+            <h2 className="text-[clamp(10px,1.2vw,12px)] font-black uppercase tracking-[0.3em] italic leading-none truncate">FIBA <span className="text-[#0078D4]">OS</span></h2>
+            <p className="text-[clamp(6px,0.8vw,8px)] font-black text-[#444] tracking-[0.2em] mt-1 truncate">v3.0.5 MODO_EXPAND</p>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <nav className="flex items-center gap-2">
-          <button onClick={() => setVista('equipos')} className={`nav-item ${vista === 'equipos' ? 'active' : ''}`}>
-            <Layout size={14} /> Equipos y Jugadores
+        <nav className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 sm:pb-0">
+          <button onClick={() => setVista('equipos')} className={`nav-item whitespace-nowrap ${vista === 'equipos' ? 'active' : ''}`}>
+            <Layout size={14} /> <span className="hidden xs:inline">Equipos y Jugadores</span><span className="xs:hidden">Equipos</span>
           </button>
-          <button onClick={() => setVista('partidos')} className={`nav-item ${vista === 'partidos' ? 'active' : ''}`}>
-            <Terminal size={14} /> Partidos en Vivo
+          <button onClick={() => setVista('partidos')} className={`nav-item whitespace-nowrap ${vista === 'partidos' ? 'active' : ''}`}>
+            <Terminal size={14} /> <span className="hidden xs:inline">Partidos en Vivo</span><span className="xs:hidden">Partidos</span>
           </button>
-          <button onClick={() => setVista('analiticas')} className={`nav-item ${vista === 'analiticas' ? 'active' : ''}`}>
-            <Activity size={14} /> Centro de Analíticas
+          <button onClick={() => setVista('analiticas')} className={`nav-item whitespace-nowrap ${vista === 'analiticas' ? 'active' : ''}`}>
+            <Activity size={14} /> <span className="hidden xs:inline">Centro de Analíticas</span><span className="xs:hidden">Analíticas</span>
           </button>
-          <button onClick={() => setVista('reportes')} className={`nav-item ${vista === 'reportes' ? 'active' : ''}`}>
-            <FileText size={14} /> Reportes y PDF
+          <button onClick={() => setVista('reportes')} className={`nav-item whitespace-nowrap ${vista === 'reportes' ? 'active' : ''}`}>
+            <FileText size={14} /> <span className="hidden xs:inline">Reportes y PDF</span><span className="xs:hidden">Reportes</span>
           </button>
         </nav>
 
@@ -223,13 +241,13 @@ export default function AdminPage() {
         </div>
 
         {/* Profile / System Info */}
-        <div className="flex items-center gap-5 pl-8 border-l border-white/5">
-          <div className="text-right hidden lg:block">
-            <p className="text-[10px] font-black uppercase tracking-widest leading-tight">Admin_01</p>
-            <p className="text-[7px] text-[#444] font-black tracking-[0.3em]">RELÉ_SEGURO</p>
+        <div className="flex items-center gap-3 sm:gap-5 pl-4 sm:pl-8 border-l border-white/5 ml-auto">
+          <div className="text-right hidden sm:block">
+            <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest leading-tight">Admin_01</p>
+            <p className="text-[6px] sm:text-[7px] text-[#444] font-black tracking-[0.3em]">RELÉ_SEGURO</p>
           </div>
-          <div className="w-9 h-9 rounded-full bg-[#111] border border-white/10 flex items-center justify-center text-[11px] font-black italic shadow-xl group cursor-pointer hover:border-[#0078D4]/50 transition-colors">
-            <div className="w-7 h-7 rounded-full bg-[#0078D4]/20 flex items-center justify-center text-[#0078D4]">A</div>
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#111] border border-white/10 flex items-center justify-center text-[10px] sm:text-[11px] font-black italic shadow-xl group cursor-pointer hover:border-[#0078D4]/50 transition-colors">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#0078D4]/20 flex items-center justify-center text-[#0078D4]">A</div>
           </div>
         </div>
       </header>
@@ -240,14 +258,14 @@ export default function AdminPage() {
         <div className="h-1 bg-white/[0.02] w-full" />
 
         {/* Viewport de Canvas */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1">
           <AnimatePresence mode="wait">
 
             {/* SECCIÓN: EQUIPOS */}
             {vista === 'equipos' && (
               <motion.div key="eq" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-12 h-full">
-                {/* Panel de Propiedades Lateral (Scroll Independiente) */}
-                <div className="col-span-12 lg:col-span-4 xl:col-span-3 border-r border-white/5 p-6 space-y-6 bg-white/[0.01] overflow-y-auto custom-scrollbar">
+                {/* Panel de Propiedades Lateral (Scroll Independiente en LG+) */}
+                <div className="col-span-12 lg:col-span-4 xl:col-span-3 border-r border-white/5 p-4 sm:p-6 space-y-6 bg-white/[0.01] lg:overflow-y-auto custom-scrollbar lg:h-[calc(100vh-68px)]">
                   <ToolHeader title="Gestión de Datos" icon={Layout} />
 
                   <form onSubmit={handleCrearEquipo} className="grid-panel bg-[#121212]">
@@ -319,28 +337,28 @@ export default function AdminPage() {
                   )}
                 </div>
 
-                {/* Explorador de Datos (Estructura de Header Fijo) */}
-                <div className="col-span-12 lg:col-span-8 xl:col-span-9 flex flex-col h-full overflow-hidden">
+                {/* Explorador de Datos */}
+                <div className="col-span-12 lg:col-span-8 xl:col-span-9 flex flex-col lg:h-[calc(100vh-68px)]">
                   <div className="px-8 lg:px-12 pt-12 pb-8 flex-shrink-0">
                     <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between underline decoration-white/5 underline-offset-[20px] gap-8">
                       <div>
-                        <h2 className="text-4xl lg:text-5xl font-black italic tracking-tighter uppercase leading-none">Base de Datos <span className="text-[#0078D4]">de Equipos</span></h2>
-                        <p className="text-[11px] text-[#444] font-black tracking-[0.5em] uppercase mt-4">Gestión de Clubes y Jugadores Registrados</p>
+                        <h2 className="text-[clamp(1.5rem,4vw,3rem)] lg:text-5xl font-black italic tracking-tighter uppercase leading-none">Base de Datos <span className="text-[#0078D4]">de Equipos</span></h2>
+                        <p className="text-[9px] sm:text-[11px] text-[#444] font-black tracking-[0.3em] sm:tracking-[0.5em] uppercase mt-4">Gestión de Clubes y Jugadores Registrados</p>
                       </div>
                       <div className="flex items-center gap-4 mb-2">
                         <div className="flex flex-col items-end mr-6 whitespace-nowrap">
                           <span className="text-[9px] font-black text-[#333] uppercase mb-1">Total de Equipos</span>
-                          <span className="text-3xl font-oswald font-black text-[#0078D4] leading-none">{equipos.length}</span>
+                          <span className="text-3xl font-oswald font-black text-[#0078D4] leading-none">{(Array.isArray(equipos) ? equipos : []).length}</span>
                         </div>
                         <button className="control-button h-10 px-6 opacity-40 hover:opacity-100 whitespace-nowrap"><Search size={14} /> BUSCAR EQUIPO</button>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto custom-scrollbar px-8 lg:px-12 pb-12">
+                  <div className="flex-1 lg:overflow-y-auto custom-scrollbar px-4 sm:px-8 lg:px-12 pb-12">
 
                     <div className={equipoSel ? "flex flex-col gap-6" : "grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6"}>
-                      {equipos
+                      {(Array.isArray(equipos) ? equipos : [])
                         .filter(eq => !equipoSel || eq.id === equipoSel.id)
                         .map(eq => (
                           <div key={eq.id} className={`grid-panel group transition-all duration-500 ${equipoSel ? 'border-[#0078D4] bg-[#0c0c0c]' : 'hover:bg-[#1a1a1a]'}`}>
@@ -350,7 +368,7 @@ export default function AdminPage() {
                                   {eq.abrev}
                                 </div>
                                 <div className="flex flex-col gap-1 overflow-hidden">
-                                  <h4 className="text-[16px] font-black uppercase tracking-widest text-[#ccc] group-hover:text-white transition-colors">{eq.nombre}</h4>
+                                  <h4 className="text-[16px] font-black uppercase tracking-widest text-[#ccc] group-hover:text-white transition-colors truncate">{eq.nombre}</h4>
                                   <div className="flex items-center gap-4">
                                     <span className="text-[10px] font-bold text-[#444] uppercase tracking-[0.2em] font-mono whitespace-nowrap">ID_{eq.id.toString(36).toUpperCase()}</span>
                                     <div className="flex items-center gap-1.5 bg-[#0078D4]/10 px-2 py-0.5 rounded-sm flex-shrink-0">
@@ -361,25 +379,25 @@ export default function AdminPage() {
                                 </div>
                               </div>
 
-                              <div className={`flex items-center gap-4 transition-all ${equipoSel ? '' : 'opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0'}`}>
-                                {equipoSel ? (
-                                  <button onClick={() => setEquipoSel(null)} className="control-button px-6 bg-white/5 border-white/10 hover:bg-white/10 text-white font-black italic tracking-widest text-[10px]">
-                                    <ChevronRight size={14} className="rotate-180" /> VOLVER AL LISTADO
-                                  </button>
-                                ) : (
-                                  <>
-                                    <button onClick={() => { setEquipoSel(eq); cargarJugadores(eq.id) }} className="control-button w-12 h-12 p-0 border-[#0078D4]/30 hover:bg-[#0078D4] shadow-lg" title="Ver Plantilla de Jugadores">
-                                      <Users size={20} />
-                                    </button>
-                                    <button onClick={() => handleEditEquipo(eq)} className="control-button w-12 h-12 p-0 border-[#fbbf24]/30 hover:border-[#fbbf24]/50 hover:bg-[#fbbf24]/20 text-[#fbbf24] shadow-lg" title="Editar Equipo">
-                                      <Edit3 size={20} />
-                                    </button>
-                                    <button onClick={() => handleBorrarEquipo(eq.id)} className="control-button w-12 h-12 p-0 border-red-500/20 hover:border-red-500/50 hover:bg-red-500/20 text-red-500 shadow-lg" title="Eliminar Equipo">
-                                      <Trash2 size={20} />
-                                    </button>
-                                  </>
-                                )}
-                              </div>
+                                  <div className={`flex items-center gap-3 flex-shrink-0 ${equipoSel ? '' : 'opacity-100'}`}>
+                                    {equipoSel ? (
+                                      <button onClick={() => setEquipoSel(null)} className="control-button px-6 bg-white/5 border-white/10 hover:bg-white/10 text-white font-black italic tracking-widest text-[10px]">
+                                        <ChevronRight size={14} className="rotate-180" /> VOLVER AL LISTADO
+                                      </button>
+                                    ) : (
+                                      <>
+                                        <button onClick={() => { setEquipoSel(eq); cargarJugadores(eq.id) }} className="p-3 bg-white/[0.03] border border-white/10 rounded-sm text-[#0078D4] hover:bg-[#0078D4] hover:text-white transition-all" title="Ver Plantilla">
+                                          <Users size={20} />
+                                        </button>
+                                        <button onClick={() => handleEditEquipo(eq)} className="p-3 bg-white/[0.03] border border-white/10 rounded-sm text-[#fbbf24] hover:bg-[#fbbf24] hover:text-white transition-all" title="Editar Equipo">
+                                          <Edit3 size={20} />
+                                        </button>
+                                        <button onClick={() => handleBorrarEquipo(eq.id)} className="p-3 bg-white/[0.03] border border-white/10 rounded-sm text-red-500 hover:bg-red-500 hover:text-white transition-all" title="Eliminar Equipo">
+                                          <Trash2 size={20} />
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
                             </div>
 
                             {equipoSel?.id === eq.id && (
@@ -395,7 +413,7 @@ export default function AdminPage() {
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-white/[0.03]">
-                                    {jugadores.map(j => (
+                                    {(Array.isArray(jugadores) ? jugadores : []).map(j => (
                                       <tr key={j.id} className="text-[13px] font-bold hover:bg-[#0078D4]/5 transition-colors group/row">
                                         <td className="py-4 text-[#0078D4] font-oswald text-2xl italic">#{j.numero}</td>
                                         <td className="py-4 uppercase tracking-widest text-[#999] group-hover/row:text-white transition-colors">{j.nombre}</td>
@@ -427,8 +445,8 @@ export default function AdminPage() {
 
             {/* VISTAS: CONTROL DE PARTIDOS */}
             {vista === 'partidos' && (
-              <motion.div key="pt" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="grid grid-cols-12 h-full">
-                <div className="col-span-12 lg:col-span-4 border-r border-white/5 p-8 bg-white/[0.005] overflow-y-auto custom-scrollbar">
+              <motion.div key="pt" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="grid grid-cols-12">
+                <div className="col-span-12 lg:col-span-4 border-r border-white/5 p-4 sm:p-8 bg-white/[0.005] lg:overflow-y-auto custom-scrollbar lg:h-[calc(100vh-68px)]">
                   <ToolHeader title="Nuevo Partido" icon={Terminal} />
                   <form onSubmit={handleCrearPartido} className="grid-panel mt-12 bg-[#121212] overflow-visible">
                     <div className="grid-panel-header italic tracking-[0.2em] border-b-[#0078D4]/40 flex justify-between items-center">
@@ -443,7 +461,7 @@ export default function AdminPage() {
                       <PropertyField label="Equipo Local">
                         <select className="control-input w-full uppercase font-black tracking-widest" value={fP.local_id} onChange={e => setFP({ ...fP, local_id: e.target.value })}>
                           <option value="">Seleccionar Equipo Local...</option>
-                          {equipos.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                          {(Array.isArray(equipos) ? equipos : []).map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
                         </select>
                       </PropertyField>
                       <div className="flex justify-center -my-4 relative z-10">
@@ -454,7 +472,7 @@ export default function AdminPage() {
                       <PropertyField label="Equipo Visitante">
                         <select className="control-input w-full uppercase font-black tracking-widest" value={fP.visitante_id} onChange={e => setFP({ ...fP, visitante_id: e.target.value })}>
                           <option value="">Seleccionar Equipo Visitante...</option>
-                          {equipos.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                          {(Array.isArray(equipos) ? equipos : []).map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
                         </select>
                       </PropertyField>
                       <div className="grid grid-cols-1 gap-4 pt-4 border-t border-white/5">
@@ -485,15 +503,15 @@ export default function AdminPage() {
                   </form>
                 </div>
 
-                <div className="col-span-12 lg:col-span-8 flex flex-col h-full overflow-hidden">
+                <div className="col-span-12 lg:col-span-8 flex flex-col lg:h-[calc(100vh-68px)]">
                   <div className="p-16 pb-8 flex-shrink-0">
                     <h2 className="text-5xl font-black italic tracking-tighter uppercase leading-none">Historial <span className="text-[#0078D4]">de Partidos</span></h2>
                     <p className="text-[11px] text-[#444] font-black tracking-[0.5em] uppercase mt-6">Partidos Registrados en el Sistema</p>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto custom-scrollbar px-16 pb-16">
+                  <div className="flex-1 lg:overflow-y-auto custom-scrollbar px-4 sm:px-8 lg:px-16 pb-16">
                     <div className="space-y-6">
-                      {partidos.map(p => (
+                      {(Array.isArray(partidos) ? partidos : []).map(p => (
                         <div key={p.id} className="group relative bg-[#111] border border-white/5 hover:border-[#0078D4]/40 transition-all duration-500 shadow-2xl overflow-hidden">
                           <div className="absolute top-0 left-0 w-1 h-full bg-[#0078D4] opacity-40 group-hover:opacity-100 transition-opacity" />
 
@@ -592,10 +610,7 @@ export default function AdminPage() {
         {/* Capa de Estado Global */}
         <footer className="status-bar px-10 h-8 flex items-center overflow-hidden">
           <div className="flex items-center gap-4 flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]" />
-              <span className="text-[10px] uppercase font-black tracking-widest whitespace-nowrap">SISTEMA: LISTO</span>
-            </div>
+            <ConnectionBadge />
             <span className="text-white/10">|</span>
             <div className="flex items-center gap-2 text-[#777]">
               <span className="text-[10px] uppercase font-black tracking-widest whitespace-nowrap">CIFRADO: ACTIVO</span>
@@ -618,9 +633,28 @@ export default function AdminPage() {
       </main>
 
       {/* Overlays de Lógica */}
+      <AnimatePresence>
+        {busy && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center"
+          >
+            <div className="bg-[#111] border border-white/10 p-8 rounded-sm shadow-2xl flex flex-col items-center gap-6">
+              <div className="w-12 h-12 border-4 border-[#0078D4]/20 border-t-[#0078D4] rounded-full animate-spin" />
+              <div className="flex flex-col items-center gap-2">
+                <span className="text-[11px] font-black text-white tracking-[0.5em] uppercase">Procesando_Petición</span>
+                <span className="text-[9px] font-bold text-[#444] uppercase tracking-widest text-center">El servidor en Render está trabajando...<br/>Por favor espera unos segundos</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <ConfirmModal
         show={modal.show}
-        onClose={() => setModal({ ...modal, show: false })}
+        onClose={() => !busy && setModal({ ...modal, show: false })}
         onConfirm={() => { modal.onConfirm(); setModal({ ...modal, show: false }) }}
         title={modal.title}
         msg={modal.msg}

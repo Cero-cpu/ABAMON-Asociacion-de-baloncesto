@@ -11,8 +11,8 @@ dist/
 .DS_Store
 
 # DB
-backend/*.db
-backend/*.sqlite3
+# backend/*.db
+# backend/*.sqlite3
 
 # Electron
 electron/dist/

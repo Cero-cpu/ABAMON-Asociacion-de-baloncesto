@@ -24,7 +24,11 @@ export default function LoginPage() {
             navigate('/admin')
         } catch (err) {
             console.error(err)
-            setError(err.response?.data?.detail || 'Error de conexión')
+            if (err.code === 'ECONNABORTED' || !err.response) {
+                setError('El servidor está tardando en despertar... Por favor espera unos segundos e intenta de nuevo.')
+            } else {
+                setError(err.response?.data?.detail || 'Error de conexión')
+            }
         } finally {
             setLoading(false)
         }
