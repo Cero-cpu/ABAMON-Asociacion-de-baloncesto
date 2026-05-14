@@ -12,14 +12,20 @@ connect_args = {}
 if db_url.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
 
-engine = create_engine(
-    db_url,
-    connect_args=connect_args,
-    pool_size=20,           # Aumentamos el pool de conexiones
-    max_overflow=10,        # Permitimos más desbordamiento
-    pool_timeout=30,        # Tiempo de espera para obtener una conexión
-    pool_recycle=1800,      # Reciclar conexiones cada 30 min para evitar desconexiones de Render/Postgres
-)
+# Pooling options (only for Postgres/production)
+engine_args = {
+    "connect_args": connect_args
+}
+
+if not db_url.startswith("sqlite"):
+    engine_args.update({
+        "pool_size": 20,
+        "max_overflow": 10,
+        "pool_timeout": 30,
+        "pool_recycle": 1800
+    })
+
+engine = create_engine(db_url, **engine_args)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
