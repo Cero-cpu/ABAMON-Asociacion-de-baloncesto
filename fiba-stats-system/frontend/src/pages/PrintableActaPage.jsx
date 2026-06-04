@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { getPartido, getResumenPartido, getParciales } from '../services/api'
 
 /* ──────────────────────────────────────────
-   PLANILLA ESTADÍSTICA FIBA – Print Layout
+   PLANILLA ESTADÍSTICA ABAMON – Print Layout
    ────────────────────────────────────────── */
 
 const cellStyle = {
@@ -258,7 +258,7 @@ export default function PrintableActaPage() {
         )
     }
 
-    // Render team table (matches the FIBA reference)
+    // Render team table (matches the ABAMON reference)
     const renderTeamTable = (teamName, abrev, players, entrenador, asistentes, isLocal) => {
         // Separate starters and bench, sort starters first
         const starters = players.filter(p => p.es_titular)
@@ -437,9 +437,9 @@ export default function PrintableActaPage() {
 
                 {/* ═══════ HEADER ═══════ */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '4px', gap: '10px' }}>
-                    {/* Left: FIBA logo placeholder */}
+                    {/* Left: ABAMON logo placeholder */}
                     <div style={{ width: '48px', height: '48px', border: '1px solid #999', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', fontWeight: 'bold', flexShrink: 0, textAlign: 'center' }}>
-                        FIBA
+                        ABAMON
                     </div>
 
                     {/* Center: Title and match info */}
@@ -461,7 +461,7 @@ export default function PrintableActaPage() {
                     {/* Right: Planilla info box */}
                     <div style={{ border: '1px solid #000', padding: '3px 6px', fontSize: '8px', textAlign: 'right', flexShrink: 0 }}>
                         <div style={{ fontWeight: 'bold', fontSize: '10px' }}>Planilla estadística</div>
-                        <div style={{ fontWeight: 'bold', fontSize: '12px' }}>FIBA</div>
+                        <div style={{ fontWeight: 'bold', fontSize: '12px' }}>ABAMON</div>
                         <div style={{ marginTop: '2px' }}>Juego No.: {partido.id}</div>
                         <div>Reporte generado: {new Date().toLocaleDateString('es-DO')}</div>
                     </div>

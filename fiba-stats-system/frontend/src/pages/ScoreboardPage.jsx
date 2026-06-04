@@ -229,7 +229,7 @@ export default function ScoreboardPage() {
 
       {/* Header */}
       <header className="min-h-[10vh] bg-black/60 border-b border-white/[0.08] px-4 sm:px-12 flex flex-col md:flex-row items-center justify-between z-40 relative backdrop-blur-md flex-shrink-0 py-4 md:py-0 gap-6">
-        <h1 className="text-3xl font-black italic tracking-tighter uppercase">FIBA <span className="text-[#0078D4]">STATS</span></h1>
+        <h1 className="text-3xl font-black italic tracking-tighter uppercase">ABAMON <span className="text-[#0078D4]">STATS</span></h1>
 
         <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-10 bg-white/[0.03] px-4 sm:px-10 py-2 border border-white/[0.08]">
           <div className="flex flex-col items-center">
@@ -301,7 +301,7 @@ export default function ScoreboardPage() {
       </main>
 
       <footer className="min-h-10 bg-black border-t border-white/[0.06] px-4 sm:px-12 flex flex-wrap items-center justify-between z-50 text-[10px] font-black uppercase text-white/15 tracking-widest py-2 sm:py-0 gap-4">
-        <span>FIBA Stats System</span>
+        <span>ABAMON Stats System</span>
         <span>{partido.estado === 'en_juego' ? '● En juego' : partido.estado === 'finalizado' ? 'Final' : 'Pendiente'}</span>
       </footer>
 

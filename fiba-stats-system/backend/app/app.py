@@ -10,6 +10,7 @@ from app.models.user import User
 from app.core.security import get_password_hash
 from app.websockets.manager import broadcast_update
 from sqlalchemy import text
+from app.core.config import settings
 
 async def clock_worker():
     """Background task to decrement active clocks every second."""
@@ -45,20 +46,6 @@ async def clock_worker():
         finally:
             db.close()
 
-async def keepalive_worker():
-    """Background task to keep the database connection alive (prevent Render spin down)."""
-    while True:
-        await asyncio.sleep(240)  # Every 4 minutes
-        db = SessionLocal()
-        try:
-            db.execute(text("SELECT 1"))
-            db.commit()
-            print("Keepalive ping to DB sent")
-        except Exception as e:
-            print(f"Error in keepalive worker: {e}")
-            db.rollback()
-        finally:
-            db.close()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -70,13 +57,13 @@ async def lifespan(app: FastAPI):
     try:
         if db.query(User).count() == 0:
             admin_user = User(
-                username="admin",
-                hashed_password=get_password_hash("fiba2025"),
+                username=settings.ADMIN_USERNAME,
+                hashed_password=get_password_hash(settings.ADMIN_PASSWORD),
                 is_admin=True
             )
             db.add(admin_user)
             db.commit()
-            print("Default admin user created: admin / fiba2025")
+            print(f"Default admin user created: {settings.ADMIN_USERNAME}")
     except Exception as e:
         print(f"Error creating default user: {e}")
     finally:
@@ -84,9 +71,6 @@ async def lifespan(app: FastAPI):
 
     # Start the clock background worker
     asyncio.create_task(clock_worker())
-    
-    # Start the keepalive worker to prevent DB from sleeping
-    asyncio.create_task(keepalive_worker())
     
     yield
     # Shutdown: Add cleanup logic if needed
@@ -99,7 +83,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[origin.strip() for origin in settings.ALLOWED_ORIGINS.split(',')] if settings.ALLOWED_ORIGINS else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

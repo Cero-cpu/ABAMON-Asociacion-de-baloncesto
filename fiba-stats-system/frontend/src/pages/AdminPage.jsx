@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users, Trophy, FileText, Settings, Plus, Trash2, Edit3, Save, X,
   ChevronRight, Database, Shield, Layout, Command, Search, Filter,
-  Download, Printer, Info, Clock, Terminal, CheckCircle2, AlertCircle, Activity, Box, Radio
+  Download, Printer, Info, Clock, Terminal, CheckCircle2, AlertCircle, Activity, Box, Radio, Menu
 } from 'lucide-react'
 import {
   getEquipos, crearEquipo, eliminarEquipo, actualizarEquipo,
@@ -16,6 +16,7 @@ import AnaliticasSection from '../components/AnaliticasSection'
 import { getResumenPartido, getParciales, getEquipo } from '../services/api'
 import { Link } from 'react-router-dom'
 import ConnectionBadge from '../components/ConnectionBadge'
+import logoAbamon from '../assets/Logo_ABAMON.jpeg'
 
 // --- Componentes de Alta Densidad ---
 
@@ -50,6 +51,7 @@ export default function AdminPage() {
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState('')
   const [modal, setModal] = useState({ show: false, title: '', msg: '', onConfirm: null })
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Formularios
   const [fE, setFE] = useState({ nombre: '', abrev: '', entrenador: '', color_principal: '#0078D4' })
@@ -188,31 +190,34 @@ export default function AdminPage() {
   return (
     <div className="flex flex-col min-h-screen w-full bg-[#0a0a0a] text-white">
       {/* 1. Navegación Top (Estilo Fluent) */}
-      <header className="region-top-nav px-6">
+      <header className="region-top-nav px-4 sm:px-6 relative">
+        {/* Mobile Menu Button */}
+        <button onClick={() => setMobileMenuOpen(true)} className="lg:hidden p-2 text-white/70 hover:text-white bg-white/[0.03] border border-white/5 rounded-md mr-3 flex-shrink-0">
+          <Menu size={20} />
+        </button>
+
         {/* Brand/Logo */}
-        <div className="flex items-center gap-4 mr-10">
-          <div className="w-8 h-8 rounded-sm bg-[#0078D4] flex items-center justify-center shadow-[0_0_15px_rgba(0,120,212,0.4)] flex-shrink-0">
-            <Box size={18} className="text-white" />
-          </div>
+        <div className="flex items-center gap-4 mr-4 lg:mr-10">
+          <img src={logoAbamon} alt="ABAMON Logo" className="w-10 h-10 object-contain drop-shadow-md rounded-sm flex-shrink-0 bg-white/5" />
           <div className="flex flex-col sm:block overflow-hidden">
-            <h2 className="text-[clamp(10px,1.2vw,12px)] font-black uppercase tracking-[0.3em] italic leading-none truncate">FIBA <span className="text-[#0078D4]">OS</span></h2>
+            <h2 className="text-[clamp(10px,1.2vw,12px)] font-black uppercase tracking-[0.3em] italic leading-none truncate">ABAMON <span className="text-[#0078D4]">OS</span></h2>
             <p className="text-[clamp(6px,0.8vw,8px)] font-black text-[#444] tracking-[0.2em] mt-1 truncate">v3.0.5 MODO_EXPAND</p>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <nav className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 sm:pb-0">
+        {/* Navigation Tabs – Desktop only */}
+        <nav className="hidden lg:flex items-center gap-2 pb-2 sm:pb-0">
           <button onClick={() => setVista('equipos')} className={`nav-item whitespace-nowrap ${vista === 'equipos' ? 'active' : ''}`}>
-            <Layout size={14} /> <span className="hidden xs:inline">Equipos y Jugadores</span><span className="xs:hidden">Equipos</span>
+            <Layout size={14} /> Equipos y Jugadores
           </button>
           <button onClick={() => setVista('partidos')} className={`nav-item whitespace-nowrap ${vista === 'partidos' ? 'active' : ''}`}>
-            <Terminal size={14} /> <span className="hidden xs:inline">Partidos en Vivo</span><span className="xs:hidden">Partidos</span>
+            <Terminal size={14} /> Partidos en Vivo
           </button>
           <button onClick={() => setVista('analiticas')} className={`nav-item whitespace-nowrap ${vista === 'analiticas' ? 'active' : ''}`}>
-            <Activity size={14} /> <span className="hidden xs:inline">Centro de Analíticas</span><span className="xs:hidden">Analíticas</span>
+            <Activity size={14} /> Centro de Analíticas
           </button>
           <button onClick={() => setVista('reportes')} className={`nav-item whitespace-nowrap ${vista === 'reportes' ? 'active' : ''}`}>
-            <FileText size={14} /> <span className="hidden xs:inline">Reportes y PDF</span><span className="xs:hidden">Reportes</span>
+            <FileText size={14} /> Reportes y PDF
           </button>
         </nav>
 
@@ -252,7 +257,72 @@ export default function AdminPage() {
         </div>
       </header>
 
+      {/* ── Mobile Menu Overlay ── */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setMobileMenuOpen(false)}
+            className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md lg:hidden flex justify-start"
+          >
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              onClick={e => e.stopPropagation()}
+              className="w-[80vw] max-w-sm h-full bg-[#121212] border-r border-white/10 flex flex-col shadow-2xl"
+            >
+              {/* Menu Header */}
+              <div className="p-5 flex items-center justify-between border-b border-white/5 bg-black/20">
+                <div className="flex items-center gap-3">
+                  <img src={logoAbamon} alt="ABAMON Logo" className="w-8 h-8 object-contain rounded-sm bg-white/5" />
+                  <div>
+                    <p className="font-black italic tracking-widest text-white text-sm">ABAMON <span className="text-[#0078D4]">OS</span></p>
+                    <p className="text-[9px] text-[#444] font-black tracking-widest">NAVEGACIÓN</p>
+                  </div>
+                </div>
+                <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-white/40 hover:text-white bg-white/5 hover:bg-white/10 rounded-md transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Menu Items */}
+              <nav className="flex-1 flex flex-col p-4 gap-1.5 overflow-y-auto">
+                {[
+                  { key: 'equipos', icon: <Layout size={18} />, label: 'Equipos y Jugadores' },
+                  { key: 'partidos', icon: <Terminal size={18} />, label: 'Partidos en Vivo' },
+                  { key: 'analiticas', icon: <Activity size={18} />, label: 'Centro de Analíticas' },
+                  { key: 'reportes', icon: <FileText size={18} />, label: 'Reportes y PDF' },
+                ].map(item => (
+                  <button
+                    key={item.key}
+                    onClick={() => { setVista(item.key); setMobileMenuOpen(false) }}
+                    className={`flex items-center gap-4 p-4 rounded-lg font-black uppercase tracking-widest text-[11px] transition-all text-left ${
+                      vista === item.key
+                        ? 'bg-[#0078D4]/20 text-[#0078D4] border border-[#0078D4]/30 shadow-[0_0_20px_rgba(0,120,212,0.1)]'
+                        : 'text-white/50 hover:text-white hover:bg-white/5 border border-transparent'
+                    }`}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+
+              {/* Menu Footer */}
+              <div className="p-4 border-t border-white/5">
+                <p className="text-[9px] font-black text-[#333] tracking-widest uppercase text-center">ABAMON STATS SYSTEM v3.0.5</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* 2. Región Principal (Expandida) */}
+
       <main className="region-main">
         {/* Barra de Contexto (Opcional/Dinámica) */}
         <div className="h-1 bg-white/[0.02] w-full" />
@@ -402,8 +472,8 @@ export default function AdminPage() {
 
                             {equipoSel?.id === eq.id && (
                               <motion.div initial={{ opacity: 0, scale: 0.99 }} animate={{ opacity: 1, scale: 1 }} className="bg-black/60 border-t border-white/5 p-8 overflow-x-auto custom-scrollbar">
-                                <table className="w-full text-left min-w-[600px]">
-                                  <thead>
+                                <table className="w-full text-left block sm:table">
+                                  <thead className="hidden sm:table-header-group">
                                     <tr className="text-[11px] font-black text-[#444] uppercase tracking-[0.4em] border-b border-white/5">
                                       <th className="pb-6">NUM</th>
                                       <th className="pb-6">NOMBRE DEL JUGADOR</th>
@@ -412,21 +482,33 @@ export default function AdminPage() {
                                       <th className="pb-6 text-right">ACCIÓN</th>
                                     </tr>
                                   </thead>
-                                  <tbody className="divide-y divide-white/[0.03]">
+                                  <tbody className="block sm:table-row-group divide-y sm:divide-y divide-white/[0.03]">
                                     {(Array.isArray(jugadores) ? jugadores : []).map(j => (
-                                      <tr key={j.id} className="text-[13px] font-bold hover:bg-[#0078D4]/5 transition-colors group/row">
-                                        <td className="py-4 text-[#0078D4] font-oswald text-2xl italic">#{j.numero}</td>
-                                        <td className="py-4 uppercase tracking-widest text-[#999] group-hover/row:text-white transition-colors">{j.nombre}</td>
-                                        <td className="py-4 text-center text-[#555] font-mono">{j.posicion}</td>
-                                        <td className="py-4 text-center">
+                                      <tr key={j.id} className="block sm:table-row bg-white/[0.02] sm:bg-transparent p-4 sm:p-0 rounded-lg sm:rounded-none mb-4 sm:mb-0 border border-white/5 sm:border-0 text-[13px] font-bold hover:bg-[#0078D4]/5 transition-colors group/row">
+                                        <td className="flex justify-between sm:table-cell py-2 sm:py-4 text-[#0078D4] font-oswald text-2xl italic items-center">
+                                          <span className="sm:hidden text-[10px] font-black text-[#555] tracking-widest uppercase">Número</span>
+                                          #{j.numero}
+                                        </td>
+                                        <td className="flex justify-between sm:table-cell py-2 sm:py-4 uppercase tracking-widest text-[#999] group-hover/row:text-white transition-colors items-center">
+                                          <span className="sm:hidden text-[10px] font-black text-[#555] tracking-widest uppercase">Nombre</span>
+                                          {j.nombre}
+                                        </td>
+                                        <td className="flex justify-between sm:table-cell py-2 sm:py-4 sm:text-center text-[#555] font-mono items-center">
+                                          <span className="sm:hidden text-[10px] font-black text-[#555] tracking-widest uppercase">Posición</span>
+                                          {j.posicion}
+                                        </td>
+                                        <td className="flex justify-between sm:table-cell py-2 sm:py-4 sm:text-center items-center">
+                                          <span className="sm:hidden text-[10px] font-black text-[#555] tracking-widest uppercase">Estado</span>
                                           {j.es_titular ?
                                             <span className="text-[10px] font-black text-white bg-[#0078D4]/20 px-3 py-1 rounded-sm border border-[#0078D4]/40 uppercase italic">Titular</span> :
                                             <span className="text-[10px] font-black text-[#333] uppercase">Banca</span>
                                           }
                                         </td>
-                                        <td className="py-4 text-right flex justify-end gap-2">
-                                          <button onClick={() => handleEditJugador(j)} className="text-[#fbbf24]/30 hover:text-[#fbbf24] transition-colors p-2"><Edit3 size={18} /></button>
-                                          <button onClick={() => handleBorrarJugador(j.id)} className="text-red-500/20 hover:text-red-500 transition-colors p-2"><Trash2 size={18} /></button>
+                                        <td className="flex justify-end sm:table-cell py-3 sm:py-4 sm:text-right pt-4 mt-2 border-t border-white/5 sm:border-0">
+                                          <div className="flex gap-2">
+                                            <button onClick={() => handleEditJugador(j)} className="text-[#fbbf24]/50 hover:text-[#fbbf24] bg-white/5 hover:bg-white/10 rounded-md transition-colors p-3 sm:p-2"><Edit3 size={18} /></button>
+                                            <button onClick={() => handleBorrarJugador(j.id)} className="text-red-500/50 hover:text-red-500 bg-white/5 hover:bg-white/10 rounded-md transition-colors p-3 sm:p-2"><Trash2 size={18} /></button>
+                                          </div>
                                         </td>
                                       </tr>
                                     ))}
@@ -559,7 +641,7 @@ export default function AdminPage() {
                                 onClick={() => {
                                   const url = `/#/acta?id=${p.id}`;
                                   // Open a popup window with specific dims correctly resolved
-                                  window.open(url, 'FIBA_Print', 'width=1100,height=850,menubar=no,toolbar=no,scrollbars=yes');
+                                  window.open(url, 'ABAMON_Print', 'width=1100,height=850,menubar=no,toolbar=no,scrollbars=yes');
                                   flash('Abriendo vista previa del sistema...');
                                 }}
                                 className="w-11 h-11 bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all text-blue-400 hover:text-blue-300 group/prt shadow-lg"
@@ -627,7 +709,7 @@ export default function AdminPage() {
               <span className="font-mono text-[10px] uppercase">{new Date().toLocaleTimeString()}</span>
             </div>
             <div className="h-4 w-px bg-white/10" />
-            <span className="text-[#0078D4] font-black italic tracking-widest text-[10px] whitespace-nowrap">FIBA STATS SYSTEM v3.0.4</span>
+            <span className="text-[#0078D4] font-black italic tracking-widest text-[10px] whitespace-nowrap">ABAMON STATS SYSTEM v3.0.4</span>
           </div>
         </footer>
       </main>

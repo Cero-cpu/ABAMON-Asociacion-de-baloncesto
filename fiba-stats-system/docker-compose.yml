@@ -1,4 +1,17 @@
 services:
+  db:
+    image: postgres:15-alpine
+    container_name: fiba-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fiba}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_in_production}
+      POSTGRES_DB: ${POSTGRES_DB:-fiba_stats}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -6,14 +19,19 @@ services:
     container_name: fiba-backend
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend:/app # Mapeo del código para Hot Reloading en desarrollo
+    depends_on:
+      - db
     environment:
       - HOST=0.0.0.0
       - PORT=8000
-      - DATABASE_URL=sqlite:////app/fiba_stats.db # Apuntamos a la base de datos principal de 72K
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-fiba}:${POSTGRES_PASSWORD:-change_me_in_production}@db:5432/${POSTGRES_DB:-fiba_stats}
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-change_me_in_production}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
       - PYTHONUNBUFFERED=1
-    command: uvicorn app.app:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - backend_data:/app/data
     restart: unless-stopped
 
   frontend:
@@ -25,6 +43,8 @@ services:
       - "80:80"
     depends_on:
       - backend
-    environment:
-      - VITE_API_URL=http://localhost:8000
     restart: unless-stopped
+
+volumes:
+  pgdata:
+  backend_data:

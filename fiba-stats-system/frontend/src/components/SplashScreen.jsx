@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import logoAbamon from '../assets/Logo_ABAMON.jpeg';
 
 const COLUMN_COUNT = 12;
 
@@ -41,10 +42,13 @@ export default function SplashScreen({ onComplete }) {
                 });
             }, 50);
 
-            // Esperar al backend O un tiempo máximo razonable (30s)
-            await Promise.race([
-                wakePromise,
-                new Promise(resolve => setTimeout(resolve, 30000))
+            // Esperar al backend O un tiempo máximo (30s), pero asegurar al menos 3.5s de duración visual
+            await Promise.all([
+                Promise.race([
+                    wakePromise,
+                    new Promise(resolve => setTimeout(resolve, 30000))
+                ]),
+                new Promise(resolve => setTimeout(resolve, 3500)) // Tiempo mínimo visible
             ]);
 
             if (isMounted) {
@@ -117,17 +121,18 @@ export default function SplashScreen({ onComplete }) {
                     </div>
 
                     {/* Contenido Central: Logo y Marca con Tipografía Premium */}
-                    <div className="absolute flex flex-col items-center z-10">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 px-6">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
                             animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
                             transition={{ delay: 1, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
                             className="text-center"
                         >
-                            <h1 className="text-6xl sm:text-8xl md:text-9xl font-black tracking-[-0.05em] text-white flex flex-col leading-[0.8]">
-                                <span className="block opacity-90">FIBA</span>
-                                <span className="bg-gradient-to-b from-blue-400 to-blue-600 bg-clip-text text-transparent">STATS</span>
-                            </h1>
+                            <img 
+                                src={logoAbamon} 
+                                alt="ABAMON Logo" 
+                                className="w-48 sm:w-64 md:w-80 h-auto object-contain drop-shadow-2xl rounded-2xl"
+                            />
 
                             <motion.div
                                 initial={{ opacity: 0, y: 10 }}

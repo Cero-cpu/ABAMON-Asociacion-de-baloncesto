@@ -44,7 +44,7 @@ const CenterHUD = memo(({ partido }) => {
   return (
     <div className="flex flex-col items-center justify-between py-10 px-4 min-w-[220px] z-10 relative">
       <div className="flex flex-col items-center gap-1">
-        <span className="text-[9px] font-black tracking-[0.6em] text-white/15 uppercase">FIBA STATS</span>
+        <span className="text-[9px] font-black tracking-[0.6em] text-white/15 uppercase">ABAMON STATS</span>
         <div className="w-12 h-px bg-white/10" />
       </div>
       <div className="flex flex-col items-center gap-6">
@@ -124,7 +124,7 @@ const ParcialesBar = memo(({ parciales, partido }) => {
       <div className="w-full flex items-stretch divide-x divide-white/[0.08] overflow-x-auto no-scrollbar">
         <div className="flex flex-col justify-center px-6 sm:px-[3vw] py-4 sm:py-[1.5vh] min-w-[120px] sm:min-w-[12vw]">
           <span className="text-[10px] sm:text-[0.7vw] font-black tracking-[0.6em] text-white/30 uppercase">INTERVALOS</span>
-          <span className="text-[8px] sm:text-[0.55vw] font-bold text-white/10 uppercase mt-0.5">FIBA STANDARDS</span>
+          <span className="text-[8px] sm:text-[0.55vw] font-bold text-white/10 uppercase mt-0.5">ABAMON STANDARDS</span>
         </div>
 
         {quarters.map(({ q, local, visitor, isActive, hasData }) => (
@@ -207,7 +207,7 @@ export default function PublicScoreboardPage() {
       </main>
       <ParcialesBar parciales={parciales} partido={partido} />
       <footer className="min-h-8 bg-black/40 border-t border-white/[0.04] flex flex-wrap items-center justify-between px-4 sm:px-10 py-2 sm:py-0 gap-4">
-        <span className="text-[8px] font-black tracking-[0.5em] text-white/10 uppercase">FIBA Stats System</span>
+        <span className="text-[8px] font-black tracking-[0.5em] text-white/10 uppercase">ABAMON Stats System</span>
         {partido.cancha && <span className="text-[8px] font-black tracking-[0.4em] text-white/10 uppercase text-center">{partido.cancha}</span>}
         <span className="text-[8px] font-black tracking-[0.5em] text-white/10 uppercase">
           {partido.estado === 'en_juego' ? '● En juego' : partido.estado === 'finalizado' ? 'Finalizado' : 'Pendiente'}

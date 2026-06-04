@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { login } from '../services/api'
+import logoAbamon from '../assets/Logo_ABAMON.jpeg'
 
 export default function LoginPage() {
     const [username, setUsername] = useState('')
@@ -49,10 +50,10 @@ export default function LoginPage() {
                 className="w-full max-w-[420px] bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-[28px] p-10 relative z-10 shadow-2xl"
             >
                 <div className="flex flex-col items-center mb-10">
-                    <div className="w-16 h-16 bg-white/[0.05] rounded-2xl flex items-center justify-center mb-6 border border-white/10">
-                        <span className="text-2xl">🏀</span>
+                    <div className="w-24 h-24 bg-white/[0.05] rounded-2xl flex items-center justify-center mb-6 border border-white/10 p-2">
+                        <img src={logoAbamon} alt="ABAMON Logo" className="w-full h-full object-contain rounded-xl" />
                     </div>
-                    <h1 className="text-2xl font-black tracking-tight text-white mb-2">FIBA STATS SYSTEM</h1>
+                    <h1 className="text-2xl font-black tracking-tight text-white mb-2">ABAMON STATS SYSTEM</h1>
                     <p className="text-white/40 text-sm font-medium tracking-wide">Acceso Organismo Autorizado</p>
                 </div>
 

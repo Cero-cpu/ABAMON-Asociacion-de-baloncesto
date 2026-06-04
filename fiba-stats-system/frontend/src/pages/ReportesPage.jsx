@@ -32,7 +32,7 @@ export default function ReportesPage() {
                         <Box size={18} className="text-white" />
                     </div>
                     <div>
-                        <h2 className="text-[12px] font-black uppercase tracking-[0.3em] italic leading-none">FIBA <span className="text-[#0078D4]">OS</span></h2>
+                        <h2 className="text-[12px] font-black uppercase tracking-[0.3em] italic leading-none">ABAMON <span className="text-[#0078D4]">OS</span></h2>
                         <p className="text-[8px] font-black text-[#111] bg-[#0078D4] px-1 mt-1 inline-block">REPORT_HUB</p>
                     </div>
                 </div>

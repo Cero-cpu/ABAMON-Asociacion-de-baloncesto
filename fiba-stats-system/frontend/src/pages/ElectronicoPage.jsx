@@ -9,7 +9,7 @@ import {
 import {
   RotateCcw, RotateCw, Shield, Terminal, Zap, Cpu, Database,
   ChevronLeft, ChevronRight, Layout, Info, Server, Play, Pause, Timer,
-  Edit3, Save
+  Edit3, Save, Users
 } from 'lucide-react'
 import { usePartido } from '../hooks/usePartido'
 import HistoryControls from '../components/HistoryControls'
@@ -135,6 +135,7 @@ export default function ElectronicoPage() {
   const getStats = (jugadorId) => statsMap[jugadorId] || {}
   const [editManual, setEditManual] = useState(false)
   const [fManual, setFManual] = useState({})
+  const [mobilePlayersOpen, setMobilePlayersOpen] = useState(false)
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60)
@@ -371,7 +372,7 @@ export default function ElectronicoPage() {
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
             <Shield size={14} className="text-[#0078D4]" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] italic">FIBA_CONSOLE_v3.0.4</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] italic">ABAMON_CONSOLE_v3.0.4</span>
           </div>
           <div className="h-4 w-px bg-white/5" />
           <HistoryControls />
@@ -654,8 +655,22 @@ export default function ElectronicoPage() {
       {/* ── CORE LAYOUT ── */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
 
+        {/* MOBILE PLAYERS TOGGLE */}
+        <div className="lg:hidden bg-[#161616] border-b border-white/5 px-4 py-2.5 flex justify-between items-center flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Users size={14} className="text-[#0078D4]" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-[#555]">Selección de Jugador</span>
+          </div>
+          <button
+            onClick={() => setMobilePlayersOpen(v => !v)}
+            className={`px-4 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-sm transition-all ${mobilePlayersOpen ? 'bg-[#0078D4] text-white shadow-[0_0_15px_rgba(0,120,212,0.35)]' : 'bg-white/10 text-white/70 hover:bg-white/15'}`}
+          >
+            {mobilePlayersOpen ? 'Ocultar' : 'Ver Jugadores'}
+          </button>
+        </div>
+
         {/* SIDEBAR: ACTIVE UNITS */}
-        <aside className="w-full lg:w-72 bg-[#121212] border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col flex-shrink-0 max-h-64 lg:max-h-none">
+        <aside className={`w-full lg:w-72 bg-[#121212] border-b lg:border-b-0 lg:border-r border-white/5 flex-col flex-shrink-0 lg:max-h-none ${mobilePlayersOpen ? 'flex h-[40vh]' : 'hidden lg:flex'}`}>
           <div className="p-1 flex bg-black border-b border-white/5">
             {['local', 'visitante'].map(t => (
               <button key={t} onClick={() => setTab(t)} className={`flex-1 py-2 text-[9px] font-black uppercase tracking-widest ${tab === t ? 'bg-[#1a1a1a] text-[#0078D4]' : 'text-[#444]'}`}>
@@ -665,12 +680,12 @@ export default function ElectronicoPage() {
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
             {Array.isArray(jugadores) && jugadores.map(j => (
-              <PlayerRow 
-                key={j.id} 
-                j={j} 
-                stats={getStats(j.id)} 
-                isSelected={jugadorSel?.id === j.id} 
-                onClick={() => { setJugadorSel(j); setEquipoSel(tab === 'local' ? partido.local_id : partido.visitante_id) }}
+              <PlayerRow
+                key={j.id}
+                j={j}
+                stats={getStats(j.id)}
+                isSelected={jugadorSel?.id === j.id}
+                onClick={() => { setJugadorSel(j); setEquipoSel(tab === 'local' ? partido.local_id : partido.visitante_id); setMobilePlayersOpen(false) }}
               />
             ))}
           </div>
@@ -743,7 +758,7 @@ export default function ElectronicoPage() {
             <span>DATABASE: READ/WRITE</span>
           </div>
         </div>
-        <div className="text-[10px] font-black italic tracking-[0.4em] text-[#222] uppercase">INTERFAZ DE CONTROL FIBA v3.0</div>
+        <div className="text-[10px] font-black italic tracking-[0.4em] text-[#222] uppercase">INTERFAZ DE CONTROL ABAMON v3.0</div>
       </footer>
     </div>
   )

@@ -20,5 +20,5 @@ COPY . .
 # Exponer el puerto
 EXPOSE 8000
 
-# Comando para ejecutar la aplicación
-CMD ["python", "main.py"]
+# Comando para ejecutar la aplicación en producción
+CMD ["gunicorn", "app.app:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
